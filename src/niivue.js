@@ -76,6 +76,7 @@ import {
   DRAG_MODE,
   DEFAULT_OPTIONS,
 } from "./nvdocument.js";
+import { NVUtilities } from "./nvutilities.js";
 export { NVDocument, SLICE_TYPE } from "./nvdocument.js";
 
 const log = new Log();
@@ -605,11 +606,17 @@ export function Niivue(options = {}) {
 //   get: function () {
 //     return this.document.scene;
 //   },
+//   set: function (scene) {
+//     this.document.scene = scene;
+//   },
 // });
 
 // Object.defineProperty(Niivue.prototype, "opts", {
 //   get: function () {
 //     return this.document.opts;
+//   },
+//   set: function (opts) {
+//     this.document.opts = opts;
 //   },
 // });
 
@@ -3246,6 +3253,9 @@ Niivue.prototype.loadDocument = function (document) {
     log.debug(meshToAdd);
     this.addMesh(meshToAdd);
   }
+  this.scene = document.scene.sceneData;
+  this.opts = document.opts;
+
   this.updateGLVolume();
   this.onDocumentLoaded(document);
   return this;
@@ -3264,6 +3274,87 @@ Niivue.prototype.saveDocument = async function (fileName = "untitled.nvd") {
   this.drawScene();
   this.document.previewImageDataURL = this.canvas.toDataURL();
   this.document.download(fileName);
+};
+
+/**
+ * generates HTML of current scene
+ */
+Niivue.prototype.generateHTML = function () {
+  console.log("doc before generate");
+  console.log(this.document);
+
+  this.document.opts = this.opts;
+  let json = this.document.json();
+  json.sceneData = { ...this.scene };
+  delete json.sceneData["sceneData"];
+  delete json.sceneData["onZoom3DChange"];
+  delete json.sceneData["sceneData"];
+
+  console.log("scene");
+  console.log(this.scene);
+  console.log("scenedata");
+  console.log(json.sceneData);
+  console.log("json");
+  console.log(json);
+
+  let docString = JSON.stringify(json);
+  // console.log("docString");
+  // console.log(docString);
+  let doc = JSON.parse(docString);
+  console.log("parsed doc");
+  docString = docString.replace(/"/g, '\\"');
+
+  console.log(doc);
+  const html = `<!DOCTYPE html>
+  <html lang="en">
+    <head>
+      <meta charset="utf-8" />
+      <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+      <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+      <title>Save as HTML</title>
+      <link rel="stylesheet" href="https://niivue.github.io/niivue/features/light.css" />
+    </head>
+    <body>
+      <noscript>niivue requires JavaScript.</noscript>
+      <header>
+      Save the current scene as HTML
+      <button id="save">Save as HTML</button>
+      </header>
+      <main>
+        <canvas id="gl1"></canvas>
+      </main>
+      <script type="module" async>
+        import * as niivue from "http://127.0.0.1:8080/features/niivue.es.js" //"https://niivue.github.io/niivue/features/niivue.es.js";
+        function saveAsHtml() {
+          nv1.saveHTML("page.html");
+        }
+        // assign our event handler
+        var button = document.getElementById("save");
+        button.onclick = saveAsHtml;
+        var nv1 = new niivue.Niivue();
+        nv1.attachTo("gl1");
+        var docString = "${docString}";
+        var json = JSON.parse(docString);
+        console.log('json');
+        console.log(json);
+        var doc = niivue.NVDocument.loadFromJSON(json);                
+        nv1.loadDocument(doc);
+        // nv1.opts = doc.opts;
+        // nv1.scene = doc.scene;        
+        nv1.updateGLVolume();
+      </script>
+    </body>
+  </html>`;
+  return html;
+};
+
+/**
+ * save current scene as HTML
+ * @param {string} fileName the name of the HTML file
+ */
+Niivue.prototype.saveHTML = async function (fileName = "untitled.html") {
+  const html = this.generateHTML();
+  NVUtilities.download(html, fileName, "application/html");
 };
 
 /**

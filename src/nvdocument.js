@@ -457,6 +457,26 @@ export class NVDocument {
     // volumes
     if (this.volumes.length) {
       let imageOptions = this.imageOptionsArray[0];
+      if (!imageOptions) {
+        imageOptions = {
+          name: "",
+          colormap: "gray",
+          opacity: 1.0,
+          pairedImgData: null,
+          cal_min: NaN,
+          cal_max: NaN,
+          trustCalMinMax: true,
+          percentileFrac: 0.02,
+          ignoreZeroVoxels: false,
+          visible: true,
+          useQFormNotSForm: false,
+          colormapNegative: "",
+          colormapLabel: [],
+          imageType: NVIMAGE_TYPE.NII,
+          frame4D: 0,
+          limitFrames4D: NaN,
+        };
+      }
       if (imageOptions) {
         imageOptionsArray.push(imageOptions);
         let encodedImageBlob = NVUtilities.uint8tob64(
