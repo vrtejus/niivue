@@ -3290,21 +3290,9 @@ Niivue.prototype.generateHTML = function () {
   delete json.sceneData["onZoom3DChange"];
   delete json.sceneData["sceneData"];
 
-  console.log("scene");
-  console.log(this.scene);
-  console.log("scenedata");
-  console.log(json.sceneData);
-  console.log("json");
-  console.log(json);
-
   let docString = JSON.stringify(json);
-  // console.log("docString");
-  // console.log(docString);
-  let doc = JSON.parse(docString);
-  console.log("parsed doc");
   docString = docString.replace(/"/g, '\\"');
 
-  console.log(doc);
   const html = `<!DOCTYPE html>
   <html lang="en">
     <head>
