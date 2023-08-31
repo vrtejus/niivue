@@ -3207,8 +3207,11 @@ Niivue.prototype.loadDocument = function (document) {
   this.createEmptyDrawing();
   // load our images and meshes
   let encodedImageBlobs = document.encodedImageBlobs;
-  for (let i = 0; i < document.imageOptionsArray.length; i++) {
-    const imageOptions = document.imageOptionsArray[i];
+  let copyImageOptions = [...document.imageOptionsArray];
+  document.clearImages();
+  console.log("adding " + copyImageOptions.length + " images");
+  for (let i = 0; i < copyImageOptions.length; i++) {
+    const imageOptions = copyImageOptions[i];
     const base64 = encodedImageBlobs[i];
     if (base64) {
       let image = NVImage.loadFromBase64({ base64, ...imageOptions });
@@ -3224,7 +3227,7 @@ Niivue.prototype.loadDocument = function (document) {
 
   const base64 = document.encodedDrawingBlob;
   if (base64) {
-    const imageOptions = document.imageOptionsArray[0];
+    const imageOptions = copyImageOptions[0];
     let drawingBitmap = NVImage.loadFromBase64({ base64, ...imageOptions });
     if (drawingBitmap) {
       this.loadDrawing(drawingBitmap);
@@ -3258,6 +3261,8 @@ Niivue.prototype.loadDocument = function (document) {
 
   this.updateGLVolume();
   this.onDocumentLoaded(document);
+  console.log("document loaded");
+  console.log(document);
   return this;
 };
 
@@ -3286,12 +3291,27 @@ Niivue.prototype.generateHTML = function () {
   this.document.opts = this.opts;
   let json = this.document.json();
   json.sceneData = { ...this.scene };
+  // delete json["encodedImageBlobs"];
   delete json.sceneData["sceneData"];
   delete json.sceneData["onZoom3DChange"];
-  delete json.sceneData["sceneData"];
+  delete json.sceneData["onAzimuthElevationChange"];
+  console.log("json");
+  console.log(json);
 
   let docString = JSON.stringify(json);
-  docString = docString.replace(/"/g, '\\"');
+
+  let doc = JSON.parse(docString);
+  console.log("parsed document");
+  console.log(doc);
+  // https://stackoverflow.com/questions/68849233/convert-a-string-to-base64-in-javascript-btoa-and-atob-are-deprecated
+  // const base64 = Buffer.from(docString).toString("base64");
+  const base64 = window.btoa(docString);
+  doc = JSON.parse(window.atob(base64));
+  console.log("parsed base64 document");
+  console.log(doc);
+  // docString = docString.replace(/"/g, '\\"');
+  // console.log("docstring");
+  // console.log(docString);
 
   const html = `<!DOCTYPE html>
   <html lang="en">
@@ -3321,8 +3341,8 @@ Niivue.prototype.generateHTML = function () {
         button.onclick = saveAsHtml;
         var nv1 = new niivue.Niivue();
         nv1.attachTo("gl1");
-        var docString = "${docString}";
-        var json = JSON.parse(docString);
+        var base64 = "${base64}";
+        var json = JSON.parse(window.atob(base64));
         console.log('json');
         console.log(json);
         var doc = niivue.NVDocument.loadFromJSON(json);                

@@ -369,6 +369,8 @@ export class NVDocument {
    * @param {NVImageFromUrlOptions} imageOptions
    */
   addImageOptions(image, imageOptions) {
+    console.log("adding image options");
+    console.log(imageOptions);
     if (!this.hasImage(image)) {
       if (!imageOptions.name) {
         if (imageOptions.url) {
@@ -389,14 +391,14 @@ export class NVDocument {
           imageOptions.name = "untitled.nii";
         }
       }
-      imageOptions.imageType = NVIMAGE_TYPE.NII;
-
-      this.data.imageOptionsArray.push(imageOptions);
-      this.imageOptionsMap.set(
-        image.id,
-        this.data.imageOptionsArray.length - 1
-      );
+    } else {
+      console.log("image already added");
     }
+
+    imageOptions.imageType = NVIMAGE_TYPE.NII;
+
+    this.data.imageOptionsArray.push(imageOptions);
+    this.imageOptionsMap.set(image.id, this.data.imageOptionsArray.length - 1);
   }
 
   /**
@@ -423,6 +425,15 @@ export class NVDocument {
     return this.imageOptionsMap.has(image.id)
       ? this.data.imageOptionsArray[this.imageOptionsMap.get(image.id)]
       : null;
+  }
+
+  /**
+   * Removes all images and options associated with those images
+   */
+  clearImages() {
+    this.data.imageOptionsArray = [];
+    this.imageOptionsMap.clear();
+    this.volumes = [];
   }
 
   /**
@@ -458,6 +469,7 @@ export class NVDocument {
     if (this.volumes.length) {
       let imageOptions = this.imageOptionsArray[0];
       if (!imageOptions) {
+        console.log("no image options for base image");
         imageOptions = {
           name: "",
           colormap: "gray",
@@ -497,7 +509,9 @@ export class NVDocument {
       for (let i = 1; i < this.volumes.length; i++) {
         const volume = this.volumes[i];
         let imageOptions = this.getImageOptions(volume);
+
         if (!imageOptions) {
+          console.log("no options found for image, using default");
           imageOptions = {
             name: "",
             colormap: "gray",
@@ -516,6 +530,10 @@ export class NVDocument {
             frame4D: 0,
             limitFrames4D: NaN,
           };
+        } else {
+          if (!("imageType" in imageOptions)) {
+            imageOptions.imageType = NVIMAGE_TYPE.NII;
+          }
         }
         // update image options on current image settings
         imageOptions.colormap = volume.colormap;
@@ -529,7 +547,7 @@ export class NVDocument {
       }
     }
     // Add it even if it's empty
-    data.imageOptionsArray = imageOptionsArray;
+    data.imageOptionsArray = [...imageOptionsArray];
 
     // meshes
     const meshes = [];
@@ -626,11 +644,15 @@ export class NVDocument {
    * Factory method to return an instance of NVDocument from JSON
    */
   static loadFromJSON(data) {
+    console.log("json to load");
+    console.log(data);
     let document = new NVDocument();
     document.data = data;
     document.scene.sceneData = data.sceneData;
     delete document.data["sceneData"];
     NVDocument.deserializeMeshDataObjects(document);
+    console.log("deserialized from json");
+    console.log(document);
     return document;
   }
 }
