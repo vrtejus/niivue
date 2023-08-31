@@ -77,6 +77,8 @@ import {
   DEFAULT_OPTIONS,
 } from "./nvdocument.js";
 import { NVUtilities } from "./nvutilities.js";
+import * as fflate from "fflate";
+
 export { NVDocument, SLICE_TYPE } from "./nvdocument.js";
 
 const log = new Log();
@@ -3291,7 +3293,6 @@ Niivue.prototype.generateHTML = function () {
   this.document.opts = this.opts;
   let json = this.document.json();
   json.sceneData = { ...this.scene };
-  // delete json["encodedImageBlobs"];
   delete json.sceneData["sceneData"];
   delete json.sceneData["onZoom3DChange"];
   delete json.sceneData["onAzimuthElevationChange"];
@@ -3299,19 +3300,11 @@ Niivue.prototype.generateHTML = function () {
   console.log(json);
 
   let docString = JSON.stringify(json);
+  const buf = fflate.strToU8(docString, { level: 6, mem: 4 });
+  const compressed = fflate.compressSync(buf);
 
-  let doc = JSON.parse(docString);
-  console.log("parsed document");
-  console.log(doc);
   // https://stackoverflow.com/questions/68849233/convert-a-string-to-base64-in-javascript-btoa-and-atob-are-deprecated
-  // const base64 = Buffer.from(docString).toString("base64");
-  const base64 = window.btoa(docString);
-  doc = JSON.parse(window.atob(base64));
-  console.log("parsed base64 document");
-  console.log(doc);
-  // docString = docString.replace(/"/g, '\\"');
-  // console.log("docstring");
-  // console.log(docString);
+  const base64 = NVUtilities.uint8tob64(compressed);
 
   const html = `<!DOCTYPE html>
   <html lang="en">
@@ -3331,18 +3324,37 @@ Niivue.prototype.generateHTML = function () {
       <main>
         <canvas id="gl1"></canvas>
       </main>
+      
       <script type="module" async>
-        import * as niivue from "http://127.0.0.1:8080/features/niivue.es.js" //"https://niivue.github.io/niivue/features/niivue.es.js";
+        import * as niivue from "http://127.0.0.1:8080/features/niivue.es.js";
+        import * as fflate from 'https://cdn.skypack.dev/fflate@0.8.0?min';
+
         function saveAsHtml() {
           nv1.saveHTML("page.html");
         }
+
+        function base64ToArrayBuffer(base64) {
+          var binaryString = atob(base64);
+          var bytes = new Uint8Array(binaryString.length);
+          for (var i = 0; i < binaryString.length; i++) {
+              bytes[i] = binaryString.charCodeAt(i);
+          }
+          return bytes;
+        }
+
         // assign our event handler
         var button = document.getElementById("save");
         button.onclick = saveAsHtml;
+
         var nv1 = new niivue.Niivue();
         nv1.attachTo("gl1");
         var base64 = "${base64}";
-        var json = JSON.parse(window.atob(base64));
+        var compressed = base64ToArrayBuffer(base64); // string -> u8c
+        console.log("compressed length:" + compressed.length);
+        const decompressed = fflate.decompressSync(compressed); // u8c -> u8d
+        console.log("decompressed length:" + decompressed.length);
+        const origText = fflate.strFromU8(decompressed); // u8d -> string
+        var json = JSON.parse(origText); // string -> JSON
         console.log('json');
         console.log(json);
         var doc = niivue.NVDocument.loadFromJSON(json);                
@@ -3350,6 +3362,7 @@ Niivue.prototype.generateHTML = function () {
         // nv1.opts = doc.opts;
         // nv1.scene = doc.scene;        
         nv1.updateGLVolume();
+      
       </script>
     </body>
   </html>`;
