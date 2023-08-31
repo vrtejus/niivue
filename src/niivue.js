@@ -3350,17 +3350,11 @@ Niivue.prototype.generateHTML = function () {
         nv1.attachTo("gl1");
         var base64 = "${base64}";
         var compressed = base64ToArrayBuffer(base64); // string -> u8c
-        console.log("compressed length:" + compressed.length);
         const decompressed = fflate.decompressSync(compressed); // u8c -> u8d
-        console.log("decompressed length:" + decompressed.length);
         const origText = fflate.strFromU8(decompressed); // u8d -> string
         var json = JSON.parse(origText); // string -> JSON
-        console.log('json');
-        console.log(json);
         var doc = niivue.NVDocument.loadFromJSON(json);                
         nv1.loadDocument(doc);
-        // nv1.opts = doc.opts;
-        // nv1.scene = doc.scene;        
         nv1.updateGLVolume();
       
       </script>
