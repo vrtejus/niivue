@@ -13,21 +13,17 @@
       <strong>niivue requires JavaScript.</strong>
     </noscript>
     <header>
-      <label for="check1">LR</label>
-      <input type="checkbox" id="check1" unchecked />
-      <label for="check2">Nose</label>
-      <input type="checkbox" id="check2" unchecked />
-      <label for="check3">World</label>
-      <input type="checkbox" id="check3" unchecked />
-      <label for="dragMode">Drag mode</label>
-      <select id="dragMode">
-        <option value="contrast">contrast</option>
-        <option value="measurement">measurement</option>
-        <option value="pan" selected>pan/zoom</option>
-        <option value="slicer3D">slicer3D</option>
-        <option value="none">none</option>
+      <label for="fiberColor">Fiber Color</label>
+      <select id="fiberColor">
+        <option value="Global">Global direction</option>
+        <option value="Local">Local direction</option>
+        <option value="Fixed">Fixed</option>
+        <option value="DPG0">First Group (if available)</option>
+        <option value="DPG1">Second Group (if available)</option>
+        <option value="DPG01">First Two Groups (if available)</option>
+        <option value="DPG2">Third Group (if available)</option>
+        <option value="DPG024">First Third and Fifth Group (if available)</option>
       </select>
-      <button id="reset">reset</button>
     </header>
     <main>
       <canvas id="gl1"></canvas>
@@ -35,73 +31,68 @@
     <footer id="location">&nbsp;</footer>
     <script type="module" async>
       import { Niivue, NVImage, NVMesh } from "./niivue/index.ts";
-      document.getElementById("reset").addEventListener("click", doReset);
-      var dropDrag = document.getElementById("dragMode");
-      dropDrag.onchange = function () {
-        switch (document.getElementById("dragMode").value) {
-          case "none":
-            nv1.opts.dragMode = nv1.dragModes.none;
-            break;
-          case "contrast":
-            nv1.opts.dragMode = nv1.dragModes.contrast;
-            break;
-          case "measurement":
-            nv1.opts.dragMode = nv1.dragModes.measurement;
-            break;
-          case "pan":
-            nv1.opts.dragMode = nv1.dragModes.pan;
-            break;
-          case "slicer3D":
-            nv1.opts.dragMode = nv1.dragModes.slicer3D;
-            break;
+      fiberColor.onchange = function () {
+        const colorName = document.getElementById("fiberColor").value;
+        if (colorName === "DPG0") {
+          let cmap = {
+                R: [0],
+                G: [255],
+                B: [0],
+                I: [0]
+          };
+          nv1.setMeshProperty(nv1.meshes[0].id, "fiberGroupColormap", cmap);
+        } else if (colorName === "DPG1") {
+          let cmap = {
+                R: [0],
+                G: [255],
+                B: [0],
+                I: [1]
+          };
+          nv1.setMeshProperty(nv1.meshes[0].id, "fiberGroupColormap", cmap);
+        } else if (colorName === "DPG01") {
+          let cmap = {
+                R: [0, 255],
+                G: [255, 0],
+                B: [0, 0],
+                I: [0, 1]
+          };
+          nv1.setMeshProperty(nv1.meshes[0].id, "fiberGroupColormap", cmap);
+        } else if (colorName === "DPG2") {
+          let cmap = {
+                R: [0],
+                G: [255],
+                B: [0],
+                I: [3]
+          };
+          nv1.setMeshProperty(nv1.meshes[0].id, "fiberGroupColormap", cmap);
+        } else if (colorName === "DPG024") {
+          let cmap = {
+                R: [0, 255, 0],
+                G: [255, 0, 0],
+                B: [0, 0, 255],
+                I: [0, 2, 4]
+          };
+          nv1.setMeshProperty(nv1.meshes[0].id, "fiberGroupColormap", cmap);
+
+        } else {
+          nv1.setMeshProperty(nv1.meshes[0].id, "fiberGroupColormap", null);
+          nv1.setMeshProperty(nv1.meshes[0].id, "fiberColor", colorName);
         }
-      };
-      document
-        .getElementById("check1")
-        .addEventListener("change", doCheckClick);
-      function doCheckClick() {
-        nv1.setRadiologicalConvention(this.checked);
-      }
-      document
-        .getElementById("check2")
-        .addEventListener("change", doCheck2Click);
-      function doCheck2Click() {
-        nv1.opts.sagittalNoseLeft = this.checked;
-        nv1.drawScene();
-      }
-      document
-        .getElementById("check3")
-        .addEventListener("change", doCheck3Click);
-      function doCheck3Click() {
-        nv1.setSliceMM(this.checked);
-      }
-      var volumeList1 = [{ url: "../demos/images/pcasl.nii.gz" }];
-      function handleLocationChange(data) {
-        document.getElementById("location").innerHTML =
-          "&nbsp;&nbsp;" + data.string;
-      }
+      }; //fiberColor.onchange()
+      var volumeList1 = [{ url: "./sub-996782_dwi_b0.nii.gz" }];
       let defaults = {
         loadingText: "there are no images",
         backColor: [1, 1, 1, 1],
         show3Dcrosshair: true,
         logging: true,
-        limitFrames4D: 3,
-        onLocationChange: handleLocationChange,
       };
       var nv1 = new Niivue(defaults);
       nv1.setRadiologicalConvention(false);
       nv1.attachTo("gl1");
       nv1.setSliceType(nv1.sliceTypeMultiplanar);
-      nv1.opts.dragMode = nv1.dragModes.pan;
-      nv1.graph.autoSizeMultiplanar = true;
-      nv1.opts.multiplanarForceRender = true;
-      nv1.graph.normalizeValues = false;
-      nv1.graph.opacity = 1.0;
       await nv1.loadVolumes(volumeList1);
-      nv1.setSelectionBoxColor([0, 1, 0, 0.5]);
-      function doReset() {
-        nv1.setDefaults(defaults, true);
-      }
+      await nv1.loadMeshes([{ url: "./sub-996782_dwi_space-RASMM_model-CSD_desc-prob-afq-clean_tractography.trx", rgba255: [0, 142, 0, 255]}]);
+      nv1.setClipPlane([-0.1, 180, 0]);
     </script>
   </body>
 </html>
