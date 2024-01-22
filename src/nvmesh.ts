@@ -1,14 +1,26 @@
 import { vec3 } from 'gl-matrix'
 import { v4 as uuidv4 } from '@lukeed/uuid'
-import { Log } from './logger.js'
+import { log } from './logger.js'
 import { NiivueObject3D } from './niivue-object3D.js' // n.b. used by connectome
 import { ColorMap, LUT, cmapper } from './colortables.js'
 import { NVMeshUtilities } from './nvmesh-utilities.js'
 import { NVMeshLoaders } from './nvmesh-loaders.js'
 import { LegacyConnectome, LegacyNodes, NVConnectomeEdge, NVConnectomeNode, Point } from './types.js'
-import { ANNOT, DefaultMeshType, GII, MGH, MZ3, TCK, TRACT, TRK, TRX, VTK, ValuesArray, X3D } from './nvmesh-types.js'
-
-const log = new Log()
+import {
+  ANNOT,
+  DefaultMeshType,
+  GII,
+  MGH,
+  MZ3,
+  TCK,
+  TRACT,
+  TRK,
+  TT,
+  TRX,
+  VTK,
+  ValuesArray,
+  X3D
+} from './nvmesh-types.js'
 
 /** Enum for text alignment
  */
@@ -125,7 +137,7 @@ export class NVMesh {
   opacity: number
   visible: boolean
   meshShaderIndex = 0
-  offsetPt0: number[] | null = null
+  offsetPt0: number[] | Uint32Array | null = null
 
   colormapInvert = false
   fiberGroupColormap: ColorMap | null = null
@@ -134,8 +146,8 @@ export class NVMesh {
   vertexBuffer: WebGLBuffer
   vao: WebGLVertexArrayObject
 
-  pts: number[]
-  tris?: number[]
+  pts: number[] | Float32Array
+  tris?: number[] | Uint32Array
   layers: NVMeshLayer[]
   type = MeshType.MESH
 
@@ -191,8 +203,8 @@ export class NVMesh {
    * @param anatomicalStructurePrimary - region for mesh. Default is an empty string
    */
   constructor(
-    pts: number[],
-    tris: number[],
+    pts: number[] | Float32Array,
+    tris: number[] | Uint32Array,
     name = '',
     rgba255 = [255, 255, 255, 255],
     opacity = 1.0,
@@ -559,7 +571,7 @@ export class NVMesh {
       if ((nEdges = nNode * nNode)) {
         hasEdges = true
       } else {
-        console.log('Expected %d edges not %d', nNode * nNode, nEdges)
+        log.warn('Expected %d edges not %d', nNode * nNode, nEdges)
       }
     }
 
@@ -673,7 +685,7 @@ export class NVMesh {
       return // connectome not mesh
     }
     if (!this.pts || !this.tris || !this.rgba255) {
-      console.log('underspecified mesh')
+      log.warn('underspecified mesh')
       return
     }
     function lerp(x: number, y: number, a: number): number {
@@ -968,7 +980,7 @@ export class NVMesh {
   ): void {
     const layer = this.layers[id]
     if (!layer || !(key in layer)) {
-      console.log('mesh does not have property ', key, ' for layer ', layer)
+      log.warn('mesh does not have property ', key, ' for layer ', layer)
       return
     }
     // @ts-expect-error TODO generic property access
@@ -980,7 +992,7 @@ export class NVMesh {
   // TODO this method is too generic
   setProperty(key: keyof this, val: unknown, gl: WebGL2RenderingContext): void {
     if (!(key in this)) {
-      console.log('mesh does not have property ', key, this)
+      log.warn('mesh does not have property ', key, this)
       return
     }
     // @ts-expect-error TODO generic access
@@ -990,12 +1002,12 @@ export class NVMesh {
 
   // Each streamline vertex has color, normal and position attributes
   // Interleaved Vertex Data https://developer.apple.com/library/archive/documentation/3DDrawing/Conceptual/OpenGLES_ProgrammingGuide/TechniquesforWorkingwithVertexData/TechniquesforWorkingwithVertexData.html
-  generatePosNormClr(pts: number[], tris: number[], rgba255: number[]): Float32Array {
+  generatePosNormClr(pts: number[] | Float32Array, tris: number[] | Uint32Array, rgba255: number[]): Float32Array {
     if (pts.length < 3 || rgba255.length < 4) {
       log.error('Catastrophic failure generatePosNormClr()')
-      console.log('this', this)
-      console.log('pts', pts)
-      console.log('rgba', rgba255)
+      log.debug('this', this)
+      log.debug('pts', pts)
+      log.debug('rgba', rgba255)
     }
     const norms = NVMeshUtilities.generateNormals(pts, tris)
     const npt = pts.length / 3
@@ -1122,7 +1134,7 @@ export class NVMesh {
     let tris: number[] = []
     let pts: number[] = []
     let anatomicalStructurePrimary = ''
-    let obj: TCK | TRACT | TRX | TRK | GII | MZ3 | X3D | VTK | DefaultMeshType
+    let obj: TCK | TRACT | TT | TRX | TRK | GII | MZ3 | X3D | VTK | DefaultMeshType
     const re = /(?:\.([^.]+))?$/
     let ext = re.exec(name)![1]
     ext = ext.toUpperCase()
@@ -1137,11 +1149,13 @@ export class NVMesh {
       return NVMesh.loadConnectomeFromFreeSurfer(JSON.parse(new TextDecoder().decode(buffer)), gl, name, opacity)
     }
     rgba255[3] = Math.max(0, rgba255[3])
-    if (ext === 'TCK' || ext === 'TRK' || ext === 'TRX' || ext === 'TRACT') {
+    if (ext === 'TCK' || ext === 'TRK' || ext === 'TT' || ext === 'TRX' || ext === 'TRACT') {
       if (ext === 'TCK') {
         obj = NVMeshLoaders.readTCK(buffer)
       } else if (ext === 'TRACT') {
         obj = NVMeshLoaders.readTRACT(buffer)
+      } else if (ext === 'TT') {
+        obj = NVMeshLoaders.readTT(buffer)
       } else if (ext === 'TRX') {
         obj = NVMeshLoaders.readTRX(buffer)
       } else {
@@ -1174,7 +1188,7 @@ export class NVMesh {
     } else if (ext === 'MZ3') {
       obj = NVMeshLoaders.readMZ3(buffer)
       if (obj instanceof Float32Array || obj.positions === null) {
-        console.log('MZ3 does not have positions (statistical overlay?)')
+        log.warn('MZ3 does not have positions (statistical overlay?)')
       }
     } else if (ext === 'ASC') {
       obj = NVMeshLoaders.readASC(buffer)
@@ -1625,6 +1639,10 @@ export class NVMesh {
 
   static readTCK(buffer: ArrayBuffer): TCK {
     return NVMeshLoaders.readTCK(buffer)
+  }
+
+  static readTT(buffer: ArrayBuffer): TT {
+    return NVMeshLoaders.readTRX(buffer)
   }
 
   static readTRX(buffer: ArrayBuffer): TRX {

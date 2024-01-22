@@ -5,6 +5,7 @@ import { ImageFromUrlOptions, NVIMAGE_TYPE, NVImage } from './nvimage/index.js'
 import { MeshType, NVMesh } from './nvmesh.js'
 import { NVLabel3D } from './nvlabel.js'
 import { NVConnectome } from './nvconnectome.js'
+import { log } from './logger.js'
 
 /**
  * Slice Type
@@ -80,7 +81,7 @@ type NVConfigOptions = {
   sagittalNoseLeft: boolean
   isSliceMM: boolean
   isHighResolutionCapable: boolean
-  logging: boolean
+  logLevel: 'debug' | 'info' | 'warn' | 'error' | 'fatal' | 'silent'
   loadingText: string
   dragAndDropEnabled: boolean
   // drawing disabled by default
@@ -143,7 +144,7 @@ export const DEFAULT_OPTIONS: NVConfigOptions = {
   sagittalNoseLeft: false,
   isSliceMM: false,
   isHighResolutionCapable: true,
-  logging: false,
+  logLevel: 'info',
   loadingText: 'waiting for images...',
   dragAndDropEnabled: true,
   drawingEnabled: false,
@@ -189,7 +190,7 @@ type Scene = {
   _azimuth?: number
 }
 
-type DocumentData = {
+export type DocumentData = {
   title: string
   imageOptionsArray: ImageFromUrlOptions[]
   meshOptionsArray: unknown[]
@@ -497,11 +498,10 @@ export class NVDocument {
     if (this.volumes.length) {
       let imageOptions = this.imageOptionsArray[0]
       if (!imageOptions) {
-        console.log('no image options for base image')
+        log.debug('no image options for base image')
         imageOptions = {
           name: '',
           colormap: 'gray',
-          colorMap: 'gray',
           opacity: 1.0,
           pairedImgData: null,
           cal_min: NaN,
@@ -550,11 +550,10 @@ export class NVDocument {
         let imageOptions = this.getImageOptions(volume)
 
         if (imageOptions === null) {
-          console.log('no options found for image, using default')
+          log.warn('no options found for image, using default')
           imageOptions = {
             name: '',
             colormap: 'gray',
-            colorMap: 'gray',
             opacity: 1.0,
             pairedImgData: null,
             cal_min: NaN,
@@ -671,6 +670,18 @@ export class NVDocument {
   static deserializeMeshDataObjects(document: NVDocument): void {
     if (document.data.meshesString) {
       document.meshDataObjects = deserialize(JSON.parse(document.data.meshesString))
+      for (const mesh of document.meshDataObjects!) {
+        for (const layer of mesh.layers) {
+          if ('colorMap' in layer) {
+            layer.colormap = layer.colorMap as string
+            delete layer.colorMap
+          }
+          if ('colorMapNegative' in layer) {
+            layer.colormapNegative = layer.colorMapNegative as string
+            delete layer.colorMapNegative
+          }
+        }
+      }
     }
   }
 

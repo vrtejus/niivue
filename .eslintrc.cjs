@@ -18,7 +18,7 @@ module.exports = {
     'no-use-before-define': 'off',
     '@typescript-eslint/array-type': ['error', { default: 'array-simple' }],
     '@typescript-eslint/no-use-before-define': 'error',
-    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+    '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^[_,test]' }],
     'prettier/prettier': [
       'error',
       {
@@ -28,7 +28,8 @@ module.exports = {
         trailingComma: 'none',
         semi: false
       }
-    ]
+    ],
+    'no-console': 2
   },
   // separate ESLint rules for TS files for now
   overrides: [
