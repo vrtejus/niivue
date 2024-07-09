@@ -50,6 +50,7 @@
         <select id="dragMode">
           <option value="contrast">contrast</option>
           <option value="measurement">measurement</option>
+          <option value="zoom">zoom</option>
           <option value="none">none</option>
         </select>
       </p>
@@ -69,6 +70,9 @@
             break
           case "measurement":
             nv1.opts.dragMode = nv1.dragModes.measurement
+            break
+          case "zoom":
+            nv1.opts.dragMode = nv1.dragModes.pan
             break
         }
       }

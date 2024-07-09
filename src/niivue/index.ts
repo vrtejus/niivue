@@ -3198,8 +3198,8 @@ export class Niivue {
     }
     if (
       posChange !== 0 &&
-      this.opts.dragMode === DRAG_MODE.pan &&
-      this.inRenderTile(this.uiData.dpr! * x, this.uiData.dpr! * y) === -1
+      this.opts.dragMode === DRAG_MODE.pan && true
+      // this.inRenderTile(this.uiData.dpr! * x, this.uiData.dpr! * y) === -1
     ) {
       let zoom = this.scene.pan2Dxyzmm[3] * (1.0 + 10 * posChange)
       zoom = Math.round(zoom * 10) / 10
@@ -3207,6 +3207,7 @@ export class Niivue {
       if (this.opts.yoke3Dto2DZoom) {
         this.scene.volScaleMultiplier = zoom
       }
+      console.log(zoom)
       this.scene.pan2Dxyzmm[3] = zoom
       const mm = this.frac2mm(this.scene.crosshairPos)
       this.scene.pan2Dxyzmm[0] += zoomChange * mm[0]
@@ -8108,6 +8109,17 @@ export class Niivue {
       const frac = this.mm2frac(mm)
       sliceFrac = frac[sliceDim]
     }
+    // const pan = this.scene.pan2Dxyzmm
+    // const panXY = this.swizzleVec3MM(vec3.fromValues(pan[0], pan[1], pan[2]), axCorSag)
+    const zoom = this.scene.pan2Dxyzmm[3]
+    // screen.mnMM[0] -= panXY[0]
+    // screen.mxMM[0] -= panXY[0]
+    // screen.mnMM[1] -= panXY[1]
+    // screen.mxMM[1] -= panXY[1]
+    screen.mnMM[0] /= zoom
+    screen.mxMM[0] /= zoom
+    screen.mnMM[1] /= zoom
+    screen.mxMM[1] /= zoom
     const sliceMM = mm[sliceDim]
     gl.clear(gl.DEPTH_BUFFER_BIT)
     let obj = this.calculateMvpMatrix2D(
@@ -9893,7 +9905,7 @@ export class Niivue {
     const corMM = []
     const sagMM = []
     const items = mosaicStr.split(/\s+/)
-    let scale = 1.0 // e.g. if 1.0 1mm per pixel
+    let scale = this.scene.pan2Dxyzmm[3] // e.g. if 1.0 1mm per pixel
     const labelSize = this.opts.textHeight
     // let isCrossLinesUsed = false;
     let marginLeft = 0
