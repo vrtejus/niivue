@@ -8949,10 +8949,11 @@ export class Niivue {
       lineColor: this.opts.legendTextColor,
       lineTerminator: LabelLineTerminator.NONE,
       bulletScale: 0.0,
-      bulletColor: this.opts.legendTextColor
+      bulletColor: this.opts.legendTextColor,
+      backgroundColor: [0, 0, 0, 0]
     }
     const labelStyle = style ? { ...defaultStyle, ...style } : { ...defaultStyle }
-    const label = new NVLabel3D(text, labelStyle, points, anchor, onClick)
+    const label = new NVLabel3D(text, { ...labelStyle }, points, anchor, onClick)
     this.document.labels.push(label)
     return label
   }
@@ -8977,16 +8978,13 @@ export class Niivue {
   getLabelAtPoint(screenPoint: [number, number]): NVLabel3D | null {
     const scale = 1.0
     const size = this.opts.textHeight * Math.min(this.gl.canvas.height, this.gl.canvas.width) * scale
-    const verticalMargin = (this.opts.textHeight * this.gl.canvas.height * scale) / 2
+    const verticalMargin = this.opts.textHeight * this.gl.canvas.height * scale
 
     // get all non-connectome labels
     for (const label of this.document.labels) {
       if (label.anchor == null || label.anchor === LabelAnchorPoint.NONE) {
         continue
       }
-
-      console.log('checking label', label)
-      console.log('at screenpoint', screenPoint)
 
       const labelSize = this.opts.textHeight * this.gl.canvas.height * label.style.textScale
       const textHeight = this.textHeight(labelSize, label.text)
@@ -9015,27 +9013,31 @@ export class Niivue {
       }
 
       if (label.anchor & LabelAnchorFlag.TOP) {
-        if (screenPoint[1] < verticalMargin) {
+        if (screenPoint[1] < verticalMargin / 2) {
           continue
         }
 
-        if (screenPoint[1] > textHeight + verticalMargin) {
+        if (screenPoint[1] > textHeight + verticalMargin / 2) {
           continue
         }
       }
 
       if (label.anchor & LabelAnchorFlag.MIDDLE) {
-        if (screenPoint[1] < (this.gl.canvas.height - textHeight) / 2) {
+        if (screenPoint[1] < (this.gl.canvas.height - textHeight - verticalMargin) / 2) {
           continue
         }
 
-        if (screenPoint[1] > (this.gl.canvas.height + textHeight) / 2) {
+        if (screenPoint[1] > (this.gl.canvas.height + textHeight - verticalMargin / 2) / 2) {
           continue
         }
       }
 
       if (label.anchor & LabelAnchorFlag.BOTTOM) {
         if (screenPoint[1] < this.gl.canvas.height - textHeight - verticalMargin) {
+          continue
+        }
+
+        if (screenPoint[1] > this.gl.canvas.height - verticalMargin / 2) {
           continue
         }
       }
@@ -9101,12 +9103,15 @@ export class Niivue {
       const text = label.text
       const textHeight = this.textHeight(label.style.textScale, text) * size
       const textWidth = this.textWidth(label.style.textScale, text) * size
-
       let left: number
       let top: number
 
       const scale = 1.0 // we may want to make this adjustable in the future
       const verticalMargin = this.opts.textHeight * this.gl.canvas.height * scale
+      const rectHeightDiff = verticalMargin
+      let rectWidthDiff = verticalMargin / 4
+      let rectHorizontalOffset = 0
+      let rectVerticalOffset = 0
 
       if (label.anchor & LabelAnchorFlag.LEFT) {
         left = 0
@@ -9114,10 +9119,13 @@ export class Niivue {
 
       if (label.anchor & LabelAnchorFlag.RIGHT) {
         left = this.canvas.width - textWidth
+        rectHorizontalOffset -= verticalMargin / 4
       }
 
       if (label.anchor & LabelAnchorFlag.CENTER) {
         left = (this.canvas.width - textWidth) / 2
+        rectHorizontalOffset -= verticalMargin / 4
+        rectWidthDiff += verticalMargin / 4
       }
 
       if (label.anchor & LabelAnchorFlag.TOP) {
@@ -9126,11 +9134,17 @@ export class Niivue {
 
       if (label.anchor & LabelAnchorFlag.MIDDLE) {
         top = (this.canvas.height - textHeight - verticalMargin) / 2
+        rectVerticalOffset -= verticalMargin / 4
       }
 
       if (label.anchor & LabelAnchorFlag.BOTTOM) {
         top = this.canvas.height - textHeight - verticalMargin
+        rectVerticalOffset -= verticalMargin / 4
       }
+      this.drawRect(
+        [left + rectHorizontalOffset, top + rectVerticalOffset, textWidth + rectWidthDiff, textHeight + rectHeightDiff],
+        label.style.backgroundColor
+      )
       this.draw3DLabel(label, [left, top])
     }
   }
