@@ -111,6 +111,7 @@ import {
   unProject,
   unpackFloatFromVec4i
 } from './utils.js'
+import { parse } from 'path'
 export { NVMesh, NVMeshFromUrlOptions, NVMeshLayerDefaults } from '../nvmesh.js'
 export { NVController } from '../nvcontroller.js'
 export { ColorTables as colortables, cmapper } from '../colortables.js'
@@ -3198,8 +3199,8 @@ export class Niivue {
     }
     if (
       posChange !== 0 &&
-      this.opts.dragMode === DRAG_MODE.pan && true
-      // this.inRenderTile(this.uiData.dpr! * x, this.uiData.dpr! * y) === -1
+      this.opts.dragMode === DRAG_MODE.pan &&
+      this.inRenderTile(this.uiData.dpr! * x, this.uiData.dpr! * y) === -1
     ) {
       let zoom = this.scene.pan2Dxyzmm[3] * (1.0 + 10 * posChange)
       zoom = Math.round(zoom * 10) / 10
@@ -3207,7 +3208,6 @@ export class Niivue {
       if (this.opts.yoke3Dto2DZoom) {
         this.scene.volScaleMultiplier = zoom
       }
-      console.log(zoom)
       this.scene.pan2Dxyzmm[3] = zoom
       const mm = this.frac2mm(this.scene.crosshairPos)
       this.scene.pan2Dxyzmm[0] += zoomChange * mm[0]
@@ -8109,13 +8109,13 @@ export class Niivue {
       const frac = this.mm2frac(mm)
       sliceFrac = frac[sliceDim]
     }
-    // const pan = this.scene.pan2Dxyzmm
-    // const panXY = this.swizzleVec3MM(vec3.fromValues(pan[0], pan[1], pan[2]), axCorSag)
+    const pan = this.scene.pan2Dxyzmm
+    const panXY = this.swizzleVec3MM(vec3.fromValues(pan[0], pan[1], pan[2]), axCorSag)
     const zoom = this.scene.pan2Dxyzmm[3]
-    // screen.mnMM[0] -= panXY[0]
-    // screen.mxMM[0] -= panXY[0]
-    // screen.mnMM[1] -= panXY[1]
-    // screen.mxMM[1] -= panXY[1]
+    screen.mnMM[0] -= panXY[0]
+    screen.mxMM[0] -= panXY[0]
+    screen.mnMM[1] -= panXY[1]
+    screen.mxMM[1] -= panXY[1]
     screen.mnMM[0] /= zoom
     screen.mxMM[0] /= zoom
     screen.mnMM[1] /= zoom
@@ -9905,11 +9905,13 @@ export class Niivue {
     const corMM = []
     const sagMM = []
     const items = mosaicStr.split(/\s+/)
-    let scale = this.scene.pan2Dxyzmm[3] // e.g. if 1.0 1mm per pixel
+    let scale = 1.0 // e.g. if 1.0 1mm per pixel
+    // let zoom = this.scene.pan2Dxyzmm[3]
     const labelSize = this.opts.textHeight
     // let isCrossLinesUsed = false;
     let marginLeft = 0
     let marginTop = 0
+    this.scene.pan2Dxyzmm[3] = 1
     for (let pass = 0; pass < 2; pass++) {
       // two pass: first calculate dimensions to determine scale, second draw items
       let isRender = false
@@ -9920,6 +9922,8 @@ export class Niivue {
       let top = 0
       let mxRowWid = 0
       let isLabel = false
+      let zoomCount = 0
+      let zoom = 1
       let axCorSag = SLICE_TYPE.AXIAL
       for (let i = 0; i < items.length; i++) {
         const item = items[i]
@@ -9946,6 +9950,23 @@ export class Niivue {
         }
         if (item.includes('R')) {
           isRender = true
+        }
+        // check for Z for zoom
+        if (item.includes('Z')) {
+          zoomCount++
+          if (zoomCount > 1) {
+            // more than one zoom value: ignore and log.error an error message
+            log.error('Error: more than one zoom value in mosaic string. Only the first value will be used.')
+            i++
+            continue
+          }
+          zoom = parseFloat(items[i + 1])
+          if (!isNaN(zoom)) {
+            this.scene.pan2Dxyzmm[3] = zoom
+            this.scene.volScaleMultiplier = zoom
+          }
+          i++
+          continue
         }
         if (item.includes(';')) {
           // EOLN
