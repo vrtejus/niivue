@@ -24,7 +24,7 @@ module.exports = function (context, options) {
                     fallback: {
                         fs: false,
                         path: false
-                    },
+                    }
                 },
             };
         },

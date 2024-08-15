@@ -4,15 +4,15 @@ import { Niivue } from "@niivue/niivue";
 export default function NiivueCanvas({ images, nvOpts }) {
   // get the origin url and prepend it to the url propery of the images
   const origin = window.location.origin;
-  const basePath = '/niivue'; // needed due to the way docusaurus serves static files with github orgs pages
+  // needed due to the way docusaurus serves static files with github orgs pages
+  const basePath = '/niivue'; 
   images = images.map((img) => {
     return { ...img, url: origin + basePath + img.url };
   });
   // canvas ref
   const canvasRef = React.useRef(null);
   const niivue = React.useRef(null);
-  console.log('images', images);
-  // on mount
+  // intialise niivue instance on first mount
   React.useEffect(() => {
     niivue.current = new Niivue({logLevel: 'debug', ...nvOpts});
     niivue.current.attachToCanvas(canvasRef.current);
