@@ -5,11 +5,11 @@ import styles from './styles.module.css';
 
 const FeatureList = [
   {
-    title: 'Runs everywhere',
+    title: 'Works everywhere',
     description: (
       <>
         NiiVue is a JavaScript library that can be used in any modern web
-        environment.
+        environment: Safari, Firefox, Chrome, Edge, Electron, iOS, Android.
       </>
     ),
   },
@@ -23,10 +23,9 @@ const FeatureList = [
   },
   {
     title: 'Community',
-    // Svg: require('@site/static/img/undraw_docusaurus_react.svg').default,
     description: (
       <>
-        The community has made extensions, products, and plug-ins using NiiVue. 
+        The community has made <a style={{textDecoration: 'underline'}} href='https://github.com/niivue/niivue?tab=readme-ov-file#projects-and-people-using-niivue' target='_blank' rel='noopener noreferrer'>extensions, products, and plug-ins</a> using NiiVue. 
       </>
     ),
   },
@@ -36,7 +35,6 @@ function Feature({ Svg, title, description }) {
   return (
     <div className={clsx('col col--4')}>
       <div className="text--center">
-        {/* <Svg className={styles.featureSvg} role="img" /> */}
       </div>
       <div className="text--center padding-horiz--md">
         <Heading as="h3">{title}</Heading>
