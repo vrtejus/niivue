@@ -6,7 +6,7 @@ NiiVue is web-based visualization tool for neuroimaging that can run on any oper
 
 The NiiVue iOS app is now available on iPhone and iPad.
 
-[![Apple App Store](./docs/appstore.svg)](https://apps.apple.com/gb/app/niivue/id6497066801)
+[![Apple App Store](./packages/niivue/docs/appstore.svg)](https://apps.apple.com/gb/app/niivue/id6497066801)
 
 ### [Click here to see NiiVue live demos](https://niivue.github.io/niivue/)
 
