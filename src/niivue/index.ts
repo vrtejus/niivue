@@ -138,6 +138,7 @@ export { NVMeshUtilities } from '../nvmesh-utilities.js'
 export { NVFont } from "../ui/nvfont.js"
 export { NVScreenText, NVModelText } from "../ui/nvtext.js"
 export { NVList } from "../ui/nvlist.js"
+export { NVSpan } from "../ui/nvspan.js"
 
 // same rollup error as above during npm run dev, and during the umd build
 // TODO: at least remove the umd build when AFNI do not need it anymore

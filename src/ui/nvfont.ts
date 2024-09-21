@@ -190,7 +190,7 @@ export class NVFont {
         for (let i = 0; i < str.length; i++) {
             w += scale * this.fontMets.mets[bytes[i]].xadv
         }
-        return w
+        return w * scale * this.gl.canvas.height * this.textHeight
     }
 
     public getTextHeight(scale: number, str: string): number {
