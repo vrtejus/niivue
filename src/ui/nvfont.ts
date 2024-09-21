@@ -197,7 +197,6 @@ export class NVFont {
         if (!str) {
             return 0
         }
-
         const byteSet = new Set(Array.from(str))
         const bytes = new TextEncoder().encode(Array.from(byteSet).join(''))
 
@@ -206,7 +205,8 @@ export class NVFont {
             .reduce((a, b) => (a.lbwh[3] > b.lbwh[3] ? a : b))
 
         const height = tallest.lbwh[3]
-        return scale * height
+
+        return scale * height * this.gl.canvas.height * this.textHeight
     }
 
     drawChar(xy: number[], scale: number, char: number): number {
