@@ -120,6 +120,8 @@ import {
   unProject,
   unpackFloatFromVec4i
 } from './utils.js'
+import { NVFont } from '../ui/nvfont.js'
+import { NVScreenText } from '../ui/nvtext.js'
 export { NVMesh, NVMeshFromUrlOptions, NVMeshLayerDefaults } from '../nvmesh.js'
 export { NVController } from '../nvcontroller.js'
 export { ColorTables as colortables, cmapper } from '../colortables.js'
@@ -132,12 +134,14 @@ export { NVUtilities } from '../nvutilities.js'
 export { LabelTextAlignment, LabelLineTerminator, NVLabel3DStyle, NVLabel3D, LabelAnchorPoint } from '../nvlabel.js'
 export { NVMeshLoaders } from '../nvmesh-loaders.js'
 export { NVMeshUtilities } from '../nvmesh-utilities.js'
+export { NVFont } from "../ui/nvfont.js"
+export { NVScreenText } from "../ui/nvtext.js"
 
 // same rollup error as above during npm run dev, and during the umd build
 // TODO: at least remove the umd build when AFNI do not need it anymore
 export * from '../types.js'
 
-type FontMetrics = {
+export type FontMetrics = {
   distanceRange: number
   size: number
   mets: Record<
@@ -264,14 +268,14 @@ const RIGHT_MOUSE_BUTTON = 2
 // gl.TEXTURE0..31 are constants 0x84C0..0x84DF = 33984..34015
 // https://github.com/niivue/niivue/blob/main/docs/development-notes/webgl.md
 // persistent textures
-const TEXTURE0_BACK_VOL = 33984
-const TEXTURE1_COLORMAPS = 33985
-const TEXTURE2_OVERLAY_VOL = 33986
-const TEXTURE3_FONT = 33987
-const TEXTURE4_THUMBNAIL = 33988
-const TEXTURE5_MATCAP = 33989
-const TEXTURE6_GRADIENT = 33990
-const TEXTURE7_DRAW = 33991
+export const TEXTURE0_BACK_VOL = 33984
+export const TEXTURE1_COLORMAPS = 33985
+export const TEXTURE2_OVERLAY_VOL = 33986
+export const TEXTURE3_FONT = 33987
+export const TEXTURE4_THUMBNAIL = 33988
+export const TEXTURE5_MATCAP = 33989
+export const TEXTURE6_GRADIENT = 33990
+export const TEXTURE7_DRAW = 33991
 // subsequent textures only used transiently
 const TEXTURE8_GRADIENT_TEMP = 33992
 const TEXTURE9_ORIENT = 33993
@@ -546,7 +550,7 @@ export class Niivue {
    *   console.log('drag ended')
    * }
    */
-  onDragRelease: (params: DragReleaseParams) => void = () => {} // function to call when contrast drag is released by default. Can be overridden by user
+  onDragRelease: (params: DragReleaseParams) => void = () => { } // function to call when contrast drag is released by default. Can be overridden by user
 
   /**
    * callback function to run when the left mouse button is released
@@ -555,7 +559,7 @@ export class Niivue {
    *   console.log('mouse up')
    * }
    */
-  onMouseUp: (data: Partial<UIData>) => void = () => {}
+  onMouseUp: (data: Partial<UIData>) => void = () => { }
   /**
    * callback function to run when the crosshair location changes
    * @example
@@ -567,7 +571,7 @@ export class Niivue {
    * console.log('values: ', data.values)
    * }
    */
-  onLocationChange: (location: unknown) => void = () => {}
+  onLocationChange: (location: unknown) => void = () => { }
   /**
    * callback function to run when the user changes the intensity range with the selection box action (right click)
    * @example
@@ -576,7 +580,7 @@ export class Niivue {
    * console.log('volume: ', volume)
    * }
    */
-  onIntensityChange: (volume: NVImage) => void = () => {}
+  onIntensityChange: (volume: NVImage) => void = () => { }
 
   /**
    * callback function when clickToSegment is enabled and the user clicks on the image. data contains the volume of the segmented region in mm3 and mL
@@ -587,7 +591,7 @@ export class Niivue {
    * console.log('volume mL: ', data.mL)
    * }
    */
-  onClickToSegment: (data: { mm3: number; mL: number }) => void = () => {}
+  onClickToSegment: (data: { mm3: number; mL: number }) => void = () => { }
 
   /**
    * callback function to run when a new volume is loaded
@@ -597,7 +601,7 @@ export class Niivue {
    * console.log('volume: ', volume)
    * }
    */
-  onImageLoaded: (volume: NVImage) => void = () => {}
+  onImageLoaded: (volume: NVImage) => void = () => { }
 
   /**
    * callback function to run when a new mesh is loaded
@@ -607,7 +611,7 @@ export class Niivue {
    * console.log('mesh: ', mesh)
    * }
    */
-  onMeshLoaded: (mesh: NVMesh) => void = () => {}
+  onMeshLoaded: (mesh: NVMesh) => void = () => { }
 
   /**
    * callback function to run when the user changes the volume when a 4D image is loaded
@@ -618,7 +622,7 @@ export class Niivue {
    * console.log('frameNumber: ', frameNumber)
    * }
    */
-  onFrameChange: (volume: NVImage, index: number) => void = () => {}
+  onFrameChange: (volume: NVImage, index: number) => void = () => { }
 
   /**
    * callback function to run when niivue reports an error
@@ -627,10 +631,10 @@ export class Niivue {
    * console.log('error: ', error)
    * }
    */
-  onError: () => void = () => {}
+  onError: () => void = () => { }
 
   /// TODO was undocumented
-  onColormapChange: () => void = () => {}
+  onColormapChange: () => void = () => { }
 
   /**
    * callback function to run when niivue reports detailed info
@@ -639,7 +643,7 @@ export class Niivue {
    * console.log('info: ', info)
    * }
    */
-  onInfo: () => void = () => {}
+  onInfo: () => void = () => { }
 
   /**
    * callback function to run when niivue reports a warning
@@ -648,7 +652,7 @@ export class Niivue {
    * console.log('warn: ', warn)
    * }
    */
-  onWarn: () => void = () => {}
+  onWarn: () => void = () => { }
 
   /**
    * callback function to run when niivue reports a debug message
@@ -657,7 +661,7 @@ export class Niivue {
    * console.log('debug: ', debug)
    * }
    */
-  onDebug: () => void = () => {}
+  onDebug: () => void = () => { }
 
   /**
    * callback function to run when a volume is added from a url
@@ -668,8 +672,8 @@ export class Niivue {
    * console.log('volume: ', volume)
    * }
    */
-  onVolumeAddedFromUrl: (imageOptions: ImageFromUrlOptions, volume: NVImage) => void = () => {}
-  onVolumeWithUrlRemoved: (url: string) => void = () => {}
+  onVolumeAddedFromUrl: (imageOptions: ImageFromUrlOptions, volume: NVImage) => void = () => { }
+  onVolumeWithUrlRemoved: (url: string) => void = () => { }
 
   /**
    * callback function to run when updateGLVolume is called (most users will not need to use
@@ -678,7 +682,7 @@ export class Niivue {
    * console.log('volume updated')
    * }
    */
-  onVolumeUpdated: () => void = () => {}
+  onVolumeUpdated: () => void = () => { }
 
   /**
    * callback function to run when a mesh is added from a url
@@ -689,14 +693,14 @@ export class Niivue {
    * console.log('mesh: ', mesh)
    * }
    */
-  onMeshAddedFromUrl: (meshOptions: LoadFromUrlParams, mesh: NVMesh) => void = () => {}
+  onMeshAddedFromUrl: (meshOptions: LoadFromUrlParams, mesh: NVMesh) => void = () => { }
 
   // TODO seems redundant with onMeshLoaded
-  onMeshAdded: () => void = () => {}
-  onMeshWithUrlRemoved: (url: string) => void = () => {}
+  onMeshAdded: () => void = () => { }
+  onMeshWithUrlRemoved: (url: string) => void = () => { }
 
   // not implemented anywhere...
-  onZoom3DChange: (zoom: number) => void = () => {}
+  onZoom3DChange: (zoom: number) => void = () => { }
 
   /**
    * callback function to run when the user changes the rotation of the 3D rendering
@@ -706,7 +710,7 @@ export class Niivue {
    * console.log('elevation: ', elevation)
    * }
    */
-  onAzimuthElevationChange: (azimuth: number, elevation: number) => void = () => {}
+  onAzimuthElevationChange: (azimuth: number, elevation: number) => void = () => { }
 
   /**
    * callback function to run when the user changes the clip plane
@@ -715,10 +719,10 @@ export class Niivue {
    * console.log('clipPlane: ', clipPlane)
    * }
    */
-  onClipPlaneChange: (clipPlane: number[]) => void = () => {}
-  onCustomMeshShaderAdded: (fragmentShaderText: string, name: string) => void = () => {}
-  onMeshShaderChanged: (meshIndex: number, shaderIndex: number) => void = () => {}
-  onMeshPropertyChanged: (meshIndex: number, key: string, val: unknown) => void = () => {}
+  onClipPlaneChange: (clipPlane: number[]) => void = () => { }
+  onCustomMeshShaderAdded: (fragmentShaderText: string, name: string) => void = () => { }
+  onMeshShaderChanged: (meshIndex: number, shaderIndex: number) => void = () => { }
+  onMeshPropertyChanged: (meshIndex: number, key: string, val: unknown) => void = () => { }
 
   /**
    * callback function to run when the user loads a new NiiVue document
@@ -727,7 +731,7 @@ export class Niivue {
    * console.log('document: ', document)
    * }
    */
-  onDocumentLoaded: (document: NVDocument) => void = () => {}
+  onDocumentLoaded: (document: NVDocument) => void = () => { }
 
   document = new NVDocument()
 
@@ -751,6 +755,8 @@ export class Niivue {
   initialized = false
   currentDrawUndoBitmap: number
   loadingText: string
+  defaultFont: NVFont
+  texts: NVScreenText[] = []
 
   /**
    * @param options  - options object to set modifiable Niivue properties
@@ -2006,7 +2012,7 @@ export class Niivue {
           if (entry.isFile) {
             const ext = this.getFileExt(entry.name)
             if (ext === 'PNG') {
-              ;(entry as FileSystemFileEntry).file((file) => {
+              ; (entry as FileSystemFileEntry).file((file) => {
                 // @ts-expect-error FIXME looks like a file gets passed instead of a string
                 this.loadBmpTexture(file).catch((e) => {
                   throw e
@@ -2033,7 +2039,7 @@ export class Niivue {
               continue
             }
             if (MESH_EXTENSIONS.includes(ext)) {
-              ;(entry as FileSystemFileEntry).file((file) => {
+              ; (entry as FileSystemFileEntry).file((file) => {
                 NVMesh.loadFromFile({
                   file,
                   gl: this.gl,
@@ -2048,7 +2054,7 @@ export class Niivue {
               })
               continue
             } else if (ext === 'NVD') {
-              ;(entry as FileSystemFileEntry).file((file) => {
+              ; (entry as FileSystemFileEntry).file((file) => {
                 NVDocument.loadFromFile(file)
                   .then((nvdoc) => {
                     this.loadDocument(nvdoc)
@@ -2060,10 +2066,10 @@ export class Niivue {
               })
               break
             }
-            ;(entry as FileSystemFileEntry).file((file) => {
+            ; (entry as FileSystemFileEntry).file((file) => {
               if (pairedImageData) {
                 // if we have paired header/img data
-                ;(pairedImageData as FileSystemFileEntry).file((imgfile) => {
+                ; (pairedImageData as FileSystemFileEntry).file((imgfile) => {
                   NVImage.loadFromFile({
                     file,
                     urlImgData: imgfile,
@@ -4984,7 +4990,8 @@ export class Niivue {
     // multi-channel signed distance font https://github.com/Chlumsky/msdfgen
     this.fontShader = new Shader(this.gl, vertFontShader, fragFontShader)
     this.fontShader.use(this.gl)
-
+    this.defaultFont = new NVFont(this.gl, this.opts.fontColor)
+    await this.defaultFont.loadDefaultFont()
     await this.loadDefaultFont()
     await this.loadDefaultMatCap()
     this.drawLoadingText(this.loadingText)
@@ -7632,11 +7639,11 @@ export class Niivue {
       labels.length === 1
         ? labels[0]
         : labels.reduce((a, b) => {
-            const aSize = this.opts.textHeight * this.gl.canvas.height * a.style.textScale
-            const bSize = this.opts.textHeight * this.gl.canvas.height * b.style.textScale
-            const taller = this.textHeight(aSize, a.text) > this.textHeight(bSize, b.text) ? a : b
-            return taller
-          })
+          const aSize = this.opts.textHeight * this.gl.canvas.height * a.style.textScale
+          const bSize = this.opts.textHeight * this.gl.canvas.height * b.style.textScale
+          const taller = this.textHeight(aSize, a.text) > this.textHeight(bSize, b.text) ? a : b
+          return taller
+        })
     const size = this.opts.textHeight * this.gl.canvas.height * tallestLabel.style.textScale
     bulletMargin = this.textHeight(size, tallestLabel.text) * widestBulletScale!
     bulletMargin += size
@@ -7899,30 +7906,31 @@ export class Niivue {
 
   // not included in public docs
   drawText(xy: number[], str: string, scale = 1, color: Float32List | null = null): void {
-    if (this.opts.textHeight <= 0) {
-      return
-    }
-    if (!this.fontShader) {
-      throw new Error('fontShader undefined')
-    }
-    this.fontShader.use(this.gl)
-    // let size = this.opts.textHeight * this.gl.canvas.height * scale;
-    const size = this.opts.textHeight * Math.min(this.gl.canvas.height, this.gl.canvas.width) * scale
-    this.gl.enable(this.gl.BLEND)
-    this.gl.uniform2f(this.fontShader.uniforms.canvasWidthHeight, this.gl.canvas.width, this.gl.canvas.height)
-    if (color === null) {
-      color = this.opts.fontColor
-    }
-    this.gl.uniform4fv(this.fontShader.uniforms.fontColor, color as Float32List)
-    let screenPxRange = (size / this.fontMets!.size) * this.fontMets!.distanceRange
-    screenPxRange = Math.max(screenPxRange, 1.0) // screenPxRange() must never be lower than 1
-    this.gl.uniform1f(this.fontShader.uniforms.screenPxRange, screenPxRange)
-    const bytes = new TextEncoder().encode(str)
-    this.gl.bindVertexArray(this.genericVAO)
-    for (let i = 0; i < str.length; i++) {
-      xy[0] += this.drawChar(xy, size, bytes[i])
-    }
-    this.gl.bindVertexArray(this.unusedVAO)
+    // if (this.opts.textHeight <= 0) {
+    //   return
+    // }
+    // if (!this.fontShader) {
+    //   throw new Error('fontShader undefined')
+    // }
+    // this.fontShader.use(this.gl)
+    // // let size = this.opts.textHeight * this.gl.canvas.height * scale;
+    // const size = this.opts.textHeight * Math.min(this.gl.canvas.height, this.gl.canvas.width) * scale
+    // this.gl.enable(this.gl.BLEND)
+    // this.gl.uniform2f(this.fontShader.uniforms.canvasWidthHeight, this.gl.canvas.width, this.gl.canvas.height)
+    // if (color === null) {
+    //   color = this.opts.fontColor
+    // }
+    // this.gl.uniform4fv(this.fontShader.uniforms.fontColor, color as Float32List)
+    // let screenPxRange = (size / this.fontMets!.size) * this.fontMets!.distanceRange
+    // screenPxRange = Math.max(screenPxRange, 1.0) // screenPxRange() must never be lower than 1
+    // this.gl.uniform1f(this.fontShader.uniforms.screenPxRange, screenPxRange)
+    // const bytes = new TextEncoder().encode(str)
+    // this.gl.bindVertexArray(this.genericVAO)
+    // for (let i = 0; i < str.length; i++) {
+    //   xy[0] += this.drawChar(xy, size, bytes[i])
+    // }
+    // this.gl.bindVertexArray(this.unusedVAO)
+    this.defaultFont.drawText(xy, str, scale, color)
   }
 
   // not included in public docs
@@ -10430,6 +10438,12 @@ export class Niivue {
     this.opts.textHeight = labelSize
   }
 
+  drawUI(): void {
+    for (const text of this.texts) {
+      text.render()
+    }
+  }
+
   // not included in public docs
   drawSceneCore(): string | void {
     if (!this.initialized) {
@@ -10456,6 +10470,7 @@ export class Niivue {
         return
       }
       this.drawLoadingText(this.loadingText)
+      this.drawUI()
       return
     }
     if (this.back === null) {
@@ -10752,6 +10767,7 @@ export class Niivue {
     this.readyForSync = true // by the time we get here, all volumes should be loaded and ready to be drawn. We let other niivue instances know that we can now reliably sync draw calls (images are loaded)
     this.sync()
     this.drawAnchoredLabels()
+    this.drawUI()
     return posString
   }
 
