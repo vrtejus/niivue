@@ -29,17 +29,36 @@ export class NVSpan implements NVUIComponent, NVUIComponentContainer {
         this.spacing = spacing;
     }
 
-    // Get the width of the container based on the total width of the components and spacing
+    /**
+     * Get the total width of the container based on visible child components.
+     * Only considers components with `isVisible` set to true.
+     * 
+     * @returns The total width of the container based on visible components.
+     */
     public getScreenWidth(): number {
-        const totalComponentHeight = this.children.reduce((width, component) => width + component.getScreenWidth(), 0);
-        const totalSpacing = this.spacing * (this.children.length - 1);  // Total spacing between components
-        return totalComponentHeight + totalSpacing;
-
+        // For a horizontal layout, the width is the sum of the widths of all visible components
+        return this.children.reduce((totalWidth, component) => {
+            if (component.isVisible) {
+                return totalWidth + component.getScreenWidth();
+            }
+            return totalWidth;  // Skip components that are not visible
+        }, 0);
     }
 
-    // Get the height of the container (determined by the tallest component) 
+    /**
+     * Get the total height of the container based on visible child components.
+     * Only considers components with `isVisible` set to true.
+     * 
+     * @returns The total height of the container based on the tallest visible component.
+     */
     public getScreenHeight(): number {
-        return this.children.reduce((width, component) => Math.max(width, component.getScreenHeight()), 0);
+        // For a horizontal layout, the height is determined by the tallest visible component
+        return this.children.reduce((maxHeight, component) => {
+            if (component.isVisible) {
+                return Math.max(maxHeight, component.getScreenHeight());
+            }
+            return maxHeight;  // Skip components that are not visible
+        }, 0);
     }
 
     // Arrange components vertically and render them
@@ -48,6 +67,9 @@ export class NVSpan implements NVUIComponent, NVUIComponentContainer {
 
         // Iterate through each component
         for (const component of this.children) {
+            if (!component.isVisible) {
+                continue
+            }
             // Set the component's position based on the current Y position
             const screenPoint: vec2 = vec2.fromValues(currentX, this.screenPosition[1]);
             component.setScreenPosition(screenPoint);

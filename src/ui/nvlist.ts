@@ -28,16 +28,36 @@ export class NVList implements NVUIComponent, NVUIComponentContainer {
         this.spacing = spacing;
     }
 
-    // Get the width of the container (determined by the widest component)
+    /**
+     * Get the total width of the container based on visible child components.
+     * Only considers components with `isVisible` set to true.
+     * 
+     * @returns The total width of the container based on visible components.
+     */
     public getScreenWidth(): number {
-        return this.children.reduce((width, component) => Math.max(width, component.getScreenWidth()), 0);
+        return this.children.reduce((maxWidth, component) => {
+            // Only consider the component if it is visible
+            if (component.isVisible) {
+                return Math.max(maxWidth, component.getScreenWidth());
+            }
+            return maxWidth;  // Skip components that are not visible
+        }, 0);
     }
 
-    // Get the height of the container based on the total height of the components and spacing
+    /**
+     * Get the total height of the container based on visible child components.
+     * Only considers components with `isVisible` set to true.
+     * 
+     * @returns The total height of the container based on visible components.
+     */
     public getScreenHeight(): number {
-        const totalComponentHeight = this.children.reduce((height, component) => height + component.getScreenHeight(), 0);
-        const totalSpacing = this.spacing * (this.children.length - 1);  // Total spacing between components
-        return totalComponentHeight + totalSpacing;
+        return this.children.reduce((totalHeight, component) => {
+            // Only consider the component if it is visible
+            if (component.isVisible) {
+                return totalHeight + component.getScreenHeight();
+            }
+            return totalHeight;  // Skip components that are not visible
+        }, 0);
     }
 
     // Arrange components vertically and render them
@@ -46,6 +66,9 @@ export class NVList implements NVUIComponent, NVUIComponentContainer {
 
         // Iterate through each component
         for (const component of this.children) {
+            if (!component.isVisible) {
+                continue
+            }
             // Set the component's position based on the current Y position
             const screenPoint: vec2 = vec2.fromValues(this.screenPosition[0], currentY);
             component.setScreenPosition(screenPoint);
