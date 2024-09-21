@@ -22,7 +22,7 @@
         nv1.setSliceType(nv1.sliceTypeRender);
         const font = new niivue.NVFont(nv1.gl)
         await font.loadFont("../fonts/UbuntuBold.png", "../fonts/UbuntuBold.json")
-        const text = new niivue.NVScreenText("waiting for images... in a different font", [0, 0], font, [0, 1, 0, 1], 2.2)
+        const text = new niivue.NVScreenText("waiting for images...", [0, 0], font, [0, 1, 0, 1], 2.2)
         nv1.texts.push(text)
         nv1.drawScene()
     </script>

@@ -10439,6 +10439,7 @@ export class Niivue {
   }
 
   drawUI(): void {
+    console.log('drawing ui components')
     for (const text of this.texts) {
       text.render()
     }
@@ -10505,6 +10506,7 @@ export class Niivue {
       if (this.opts.isColorbar) {
         this.drawColorbar()
       }
+      this.drawUI()
       return
     }
     if (this.opts.isColorbar) {
