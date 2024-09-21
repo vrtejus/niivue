@@ -121,7 +121,8 @@ import {
   unpackFloatFromVec4i
 } from './utils.js'
 import { NVFont } from '../ui/nvfont.js'
-import { NVScreenText } from '../ui/nvtext.js'
+import { NVModelText, NVScreenText } from '../ui/nvtext.js'
+import { isContainerComponent, isModelComponent, NVUIComponent, NVUIModelComponent } from '../ui/nvui-component.js'
 export { NVMesh, NVMeshFromUrlOptions, NVMeshLayerDefaults } from '../nvmesh.js'
 export { NVController } from '../nvcontroller.js'
 export { ColorTables as colortables, cmapper } from '../colortables.js'
@@ -135,7 +136,7 @@ export { LabelTextAlignment, LabelLineTerminator, NVLabel3DStyle, NVLabel3D, Lab
 export { NVMeshLoaders } from '../nvmesh-loaders.js'
 export { NVMeshUtilities } from '../nvmesh-utilities.js'
 export { NVFont } from "../ui/nvfont.js"
-export { NVScreenText } from "../ui/nvtext.js"
+export { NVScreenText, NVModelText } from "../ui/nvtext.js"
 
 // same rollup error as above during npm run dev, and during the umd build
 // TODO: at least remove the umd build when AFNI do not need it anymore
@@ -756,7 +757,10 @@ export class Niivue {
   currentDrawUndoBitmap: number
   loadingText: string
   defaultFont: NVFont
-  texts: NVScreenText[] = []
+  // texts: NVScreenText[] = []
+  // modelTexts: NVModelText[] = []
+  // visibleTexts: NVModelText[] = []
+  uiComponents: NVUIComponent[] = []
 
   /**
    * @param options  - options object to set modifiable Niivue properties
@@ -8999,7 +9003,7 @@ export class Niivue {
 
   // not included in public docs
   // display 3D volume rendering of NVImage
-  drawImage3D(mvpMatrix: mat4, azimuth: number, elevation: number): void {
+  drawImage3D(mvpMatrix: mat4, azimuth: number, elevation: number, isPicking = false): void {
     if (this.volumes.length === 0) {
       return
     }
@@ -9011,10 +9015,7 @@ export class Niivue {
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
       gl.enable(gl.CULL_FACE)
       gl.cullFace(gl.FRONT) // TH switch since we L/R flipped in calculateMvpMatrix
-      let shader = this.renderShader!
-      if (this.uiData.mouseDepthPicker) {
-        shader = this.pickingImageShader!
-      }
+      let shader = (isPicking) ? this.pickingImageShader : this.renderShader!
       shader.use(this.gl)
       // next lines optional: these textures should be bound by default
       // these lines can cause warnings, e.g. if drawTexture not used or created
@@ -9248,6 +9249,77 @@ export class Niivue {
     }
     return screenPoint
   }
+
+  /**
+     * Checks if a point in model space is clipped by a clip plane in clip space.
+     *
+     * @param point - The 3D point in model space (object coordinates).
+     * @param mvpMatrix - The Model-View-Projection matrix to transform the point to clip space.
+     * @returns {boolean} - True if the point is clipped, false otherwise.
+     */
+  public isModelPointClippedByPlane(point: vec3, mvpMatrix: mat4): boolean {
+    // Step 1: Convert the point to homogeneous coordinates by adding w = 1.0
+    const pointHomogeneous = vec4.fromValues(point[0], point[1], point[2], 1.0);
+
+    // Step 2: Transform the point by the MVP matrix to convert it to clip space
+    const pointClip = vec4.create();
+    vec4.transformMat4(pointClip, pointHomogeneous, mvpMatrix);
+
+    const clipPlane = this.document.scene.clipPlane;
+    // Step 3: Apply the clip plane equation in clip space: ax + by + cz + dw = 0
+    const a = clipPlane[0];
+    const b = clipPlane[1];
+    const c = clipPlane[2];
+    const d = clipPlane[3];
+
+    // Calculate the distance from the point to the clip plane in clip space
+    const distance = a * pointClip[0] + b * pointClip[1] + c * pointClip[2] + d * pointClip[3];
+
+    // If the distance is negative, the point is considered clipped by the plane
+    return distance < 0;
+  }
+
+  /**
+  * 
+  * @param point 
+  * @param mvpMatrix 
+  * @param leftTopWidthHeight 
+  * @param allowedDepth - Allowed depth in clip space
+  * @returns 
+  */
+  isModelPointNearSurface(point: [number, number, number], mvpMatrix: mat4, leftTopWidthHeight: number[], allowedDepth = 0.1): boolean {
+    const gl = this.gl
+    const clipPoint = vec4.create()
+    // Multiply the 3D point by the model-view-projection matrix
+    const modelPoint = vec4.fromValues(...point, 1.0)
+    vec4.transformMat4(clipPoint, modelPoint, mvpMatrix)
+    const screenPoint = this.calculateScreenPoint(point, mvpMatrix, leftTopWidthHeight)
+
+    // Convert the 4D point to 2D screen coordinates
+    if (screenPoint[3] !== 0.0) {
+      // determine what labels are visible
+      const rgbaPixel = new Uint8Array(4)
+      gl.readPixels(
+        screenPoint[0], // x
+        screenPoint[1], // y
+        1, // width
+        1, // height
+        gl.RGBA, // format
+        gl.UNSIGNED_BYTE, // type
+        rgbaPixel
+      )
+
+      const mm = this.frac2mm(vec3.fromValues(rgbaPixel[0] / 255.0, rgbaPixel[1] / 255.0, rgbaPixel[2] / 255.0))
+      const modelClipPoint = vec4.create()
+      vec4.transformMat4(modelClipPoint, mm, mvpMatrix)
+      const dist = Math.abs(modelClipPoint[2] - clipPoint[2])
+      return dist < allowedDepth
+    }
+    else {
+      return false
+    }
+  }
+
 
   getLabelAtPoint(screenPoint: [number, number]): NVLabel3D | null {
     const scale = 1.0
@@ -9525,6 +9597,150 @@ export class Niivue {
     }
   }
 
+  /**
+   * updateModelComponent
+   * @param component 
+   * @param leftTopWidthHeight 
+   * @param mvpMatrix 
+   */
+  updateModelComponent(component: NVUIModelComponent, leftTopWidthHeight: [number, number, number, number], mvpMatrix: mat4) {
+    const hideDepth = component.getHideDepth()
+    const modelPoint = component.getModelPosition()
+    const clipPoint = vec4.create()
+    // Multiply the 3D point by the model-view-projection matrix
+    vec4.transformMat4(clipPoint, vec4.fromValues(modelPoint[0], modelPoint[1], modelPoint[2], 1.0), mvpMatrix)
+
+    // Convert the 4D point to 2D screen coordinates
+    if (clipPoint[3] !== 0.0) {
+      const screenPoint = vec4.clone(clipPoint)
+      screenPoint[0] = (screenPoint[0] / screenPoint[3] + 1.0) * 0.5 * leftTopWidthHeight[2]
+      screenPoint[1] = (1.0 - screenPoint[1] / screenPoint[3]) * 0.5 * leftTopWidthHeight[3]
+      screenPoint[2] /= screenPoint[3]
+
+      screenPoint[0] += leftTopWidthHeight[0]
+      screenPoint[1] += leftTopWidthHeight[1]
+
+      const gl = this.gl
+      const rgbaPixel = new Uint8Array(4)
+      gl.readPixels(
+        screenPoint[0], // x
+        screenPoint[1], // y
+        1, // width
+        1, // height
+        gl.RGBA, // format
+        gl.UNSIGNED_BYTE, // type
+        rgbaPixel
+      )
+
+      const mm = this.frac2mm(vec3.fromValues(rgbaPixel[0] / 255.0, rgbaPixel[1] / 255.0, rgbaPixel[2] / 255.0))
+      const modelClipPoint = vec4.create()
+      vec4.transformMat4(modelClipPoint, mm, mvpMatrix)
+      const dist = Math.abs(modelClipPoint[2] - clipPoint[2])
+      // console.log('dist is ', dist)
+      component.setScreenPosition(vec2.fromValues(screenPoint[0], screenPoint[1]))
+
+      if (hideDepth) {
+        component.isVisible = dist < hideDepth
+      }
+      else {
+        component.isVisible = true
+      }
+    }
+    else {
+      component.isVisible = false
+    }
+
+    if (this.isModelPointClippedByPlane(modelPoint, mvpMatrix)) {
+      // console.log('model point is clipped by plane')
+      component.isVisible = hideDepth === 0
+    }
+
+
+    // If this is a container component recurse the children
+    if (isContainerComponent(component)) {
+      for (const child of component.children) {
+        if (isModelComponent(child)) {
+          this.updateModelComponent(child, leftTopWidthHeight, mvpMatrix)
+        }
+      }
+    }
+  }
+
+
+
+  draw3DPick(leftTopWidthHeight = [0, 0, 0, 0],
+    mvpMatrix: mat4 | null = null, modelMatrix: mat4 | null = null,
+    normalMatrix: mat4 | null = null,
+    azimuth: number | null = null,
+    elevation = 0) {
+    const gl = this.gl
+    // Create a framebuffer
+    const framebuffer = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+
+    // Create a texture to render the scene into
+    const texture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, leftTopWidthHeight[2], leftTopWidthHeight[3], 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+
+    // Set texture parameters
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    // Attach the texture to the framebuffer
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+
+    // Create a renderbuffer for depth and stencil tests
+    const renderbuffer = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH24_STENCIL8, leftTopWidthHeight[2], leftTopWidthHeight[3]);
+
+    // Attach the renderbuffer to the framebuffer
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, renderbuffer);
+
+    // Check if the framebuffer is complete
+    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
+      console.error('Framebuffer is not complete');
+    }
+
+    // Set the viewport to the framebuffer size
+    gl.viewport(0, 0, leftTopWidthHeight[2], leftTopWidthHeight[3]);
+
+    // Clear the framebuffer's color and depth buffers
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    const isMosaic = azimuth !== null
+    // render with picker
+    if (this.volumes.length > 0) {
+      this.drawImage3D(mvpMatrix, azimuth!, elevation, true)
+    }
+    this.drawMesh3D(true, 1.0, mvpMatrix, modelMatrix!, normalMatrix!, true)
+
+    // let draw3d we want to use the picker shader
+    if (this.uiData.mouseDepthPicker) {
+      // update crosshairs position
+      this.depthPicker(leftTopWidthHeight, mvpMatrix)
+
+
+      this.createOnLocationChange()
+      this.uiData.mouseDepthPicker = false
+    }
+
+    // determine what labels are visible
+    for (const component of this.uiComponents) {
+      if (!isModelComponent(component)) {
+        continue
+      }
+      this.updateModelComponent(component, leftTopWidthHeight as [number, number, number, number], mvpMatrix)
+
+    }
+
+    // Unbind the framebuffer so we can switch back to it later
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+  }
+
   // not included in public docs
   draw3D(
     leftTopWidthHeight = [0, 0, 0, 0],
@@ -9569,6 +9785,8 @@ export class Niivue {
       })
       leftTopWidthHeight[1] = gl.canvas.height - leftTopWidthHeight[3] - leftTopWidthHeight[1]
     }
+
+    this.draw3DPick(leftTopWidthHeight, mvpMatrix, modelMatrix, normalMatrix, azimuth, elevation)
 
     gl.enable(gl.DEPTH_TEST)
     gl.depthFunc(gl.ALWAYS)
@@ -9623,7 +9841,7 @@ export class Niivue {
 
   // not included in public docs
   // create 3D rendering of NVMesh on canvas
-  drawMesh3D(isDepthTest = true, alpha = 1.0, m?: mat4, modelMtx?: mat4, normMtx?: mat4): void {
+  drawMesh3D(isDepthTest = true, alpha = 1.0, m?: mat4, modelMtx?: mat4, normMtx?: mat4, isPicking = false): void {
     if (this.meshes.length < 1) {
       return
     }
@@ -9666,7 +9884,7 @@ export class Niivue {
         continue
       }
       shader = this.meshShaders[this.meshes[i].meshShaderIndex].shader!
-      if (this.uiData.mouseDepthPicker) {
+      if (isPicking) {
         shader = this.pickingMeshShader!
       }
       shader.use(this.gl) // set Shader
@@ -10439,9 +10657,10 @@ export class Niivue {
   }
 
   drawUI(): void {
-    console.log('drawing ui components')
-    for (const text of this.texts) {
-      text.render()
+    for (const component of this.uiComponents) {
+      if (component.isVisible) {
+        component.render()
+      }
     }
   }
 
