@@ -141,6 +141,7 @@ export { NVFont } from "../ui/nvfont.js"
 export { NVScreenText, NVModelText } from "../ui/nvtext.js"
 export { NVList } from "../ui/nvlist.js"
 export { NVSpan } from "../ui/nvspan.js"
+export { NVLabelLine } from "../ui/nvlabel-line.js"
 
 // same rollup error as above during npm run dev, and during the umd build
 // TODO: at least remove the umd build when AFNI do not need it anymore
@@ -9648,7 +9649,7 @@ export class Niivue {
       vec4.transformMat4(modelClipPoint, mm, mvpMatrix)
       const dist = Math.abs(modelClipPoint[2] - clipPoint[2])
       // console.log('dist is ', dist)
-      component.setScreenPosition(vec2.fromValues(screenPoint[0], screenPoint[1]))
+      component.updateProjectedPosition(vec2.fromValues(screenPoint[0], screenPoint[1]))
 
       if (hideDepth) {
         component.isVisible = dist < hideDepth

@@ -83,5 +83,9 @@ export class NVModelText extends NVScreenText implements NVUIModelComponent {
         return this.hideDepth
     }
 
+    public updateProjectedPosition(point: vec2): void {
+        this.setScreenPosition(point)
+    }
+
 }
 

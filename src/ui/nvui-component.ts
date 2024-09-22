@@ -20,6 +20,7 @@ export function isContainerComponent(obj: any): obj is NVUIComponentContainer {
 export interface NVUIModelComponent extends NVUIComponent {
     getModelPosition(): vec3 // model position control is attached to
     getHideDepth(): number // clip space depth to hide control
+    updateProjectedPosition(point: vec2): void // update points attached to model
 }
 
 export function isModelComponent(obj: any): obj is NVUIModelComponent {
