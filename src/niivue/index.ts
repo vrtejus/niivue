@@ -123,6 +123,8 @@ import {
 import { NVFont } from '../ui/nvfont.js'
 import { NVModelText, NVScreenText } from '../ui/nvtext.js'
 import { isContainerComponent, isModelComponent, NVUIComponent, NVUIModelComponent } from '../ui/nvui-component.js'
+import { FramebufferManager } from "../framebuffer-manager.js"
+
 export { NVMesh, NVMeshFromUrlOptions, NVMeshLayerDefaults } from '../nvmesh.js'
 export { NVController } from '../nvcontroller.js'
 export { ColorTables as colortables, cmapper } from '../colortables.js'
@@ -409,6 +411,8 @@ export class Niivue {
   private resizeObserver: ResizeObserver | null = null
   syncOpts: Record<string, unknown> = {}
   readyForSync = false
+
+  framebufferManager: FramebufferManager
 
   // UI Data
   uiData: UIData = {
@@ -898,7 +902,7 @@ export class Niivue {
       alpha: true,
       antialias: isAntiAlias
     })
-
+    this.framebufferManager = new FramebufferManager(this.gl, this.canvas.width, this.canvas.height)
     log.info('NIIVUE VERSION ', version)
 
     // set parent background container to black (default empty canvas color)
@@ -1069,6 +1073,11 @@ export class Niivue {
       this.canvas.width = this.canvas.offsetWidth * this.uiData.dpr
       this.canvas.height = this.canvas.offsetHeight * this.uiData.dpr
     }
+
+    // reallocate our framebuffer
+    this.framebufferManager.cleanup()
+    this.framebufferManager = new FramebufferManager(this.gl, this.canvas.width, this.canvas.height)
+
     this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height)
     this.drawScene()
   }
@@ -9677,36 +9686,36 @@ export class Niivue {
     elevation = 0) {
     const gl = this.gl
     // Create a framebuffer
-    const framebuffer = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
+    // const framebuffer = gl.createFramebuffer();
+    // gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
 
-    // Create a texture to render the scene into
-    const texture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, texture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, leftTopWidthHeight[2], leftTopWidthHeight[3], 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    // // Create a texture to render the scene into
+    // const texture = gl.createTexture();
+    // gl.bindTexture(gl.TEXTURE_2D, texture);
+    // gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, leftTopWidthHeight[2], leftTopWidthHeight[3], 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
 
-    // Set texture parameters
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    // // Set texture parameters
+    // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
-    // Attach the texture to the framebuffer
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
+    // // Attach the texture to the framebuffer
+    // gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, texture, 0);
 
-    // Create a renderbuffer for depth and stencil tests
-    const renderbuffer = gl.createRenderbuffer();
-    gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
-    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH24_STENCIL8, leftTopWidthHeight[2], leftTopWidthHeight[3]);
+    // // Create a renderbuffer for depth and stencil tests
+    // const renderbuffer = gl.createRenderbuffer();
+    // gl.bindRenderbuffer(gl.RENDERBUFFER, renderbuffer);
+    // gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH24_STENCIL8, leftTopWidthHeight[2], leftTopWidthHeight[3]);
 
-    // Attach the renderbuffer to the framebuffer
-    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, renderbuffer);
+    // // Attach the renderbuffer to the framebuffer
+    // gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_STENCIL_ATTACHMENT, gl.RENDERBUFFER, renderbuffer);
 
-    // Check if the framebuffer is complete
-    if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
-      console.error('Framebuffer is not complete');
-    }
-
+    // // Check if the framebuffer is complete
+    // if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) {
+    //   console.error('Framebuffer is not complete');
+    // }
+    this.framebufferManager.bindFramebuffer()
     // Set the viewport to the framebuffer size
     gl.viewport(0, 0, leftTopWidthHeight[2], leftTopWidthHeight[3]);
 
@@ -9740,7 +9749,8 @@ export class Niivue {
     }
 
     // Unbind the framebuffer so we can switch back to it later
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    // gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    this.framebufferManager.unbindFramebuffer()
   }
 
   // not included in public docs
