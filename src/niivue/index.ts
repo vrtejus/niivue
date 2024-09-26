@@ -3879,7 +3879,16 @@ export class Niivue {
     const meshes = []
     for (const image of images) {
       if ('url' in image) {
-        const ext = this.getFileExt(image.url)
+        let ext = this.getFileExt(image.url)
+        if (image.name) {
+          if ((!this.loaders[ext]) && (!MESH_EXTENSIONS.includes(ext.toUpperCase()))) {
+            let ext2 = this.getFileExt(image.name)
+            if ((this.loaders[ext2]) || (MESH_EXTENSIONS.includes(ext2.toUpperCase()))) {
+              ext = ext2
+              console.log('>>>mork', ext)
+            }
+          }
+        }
         // check this.loaders to see if a user has register
         // a custom loader for this file extension
         if (this.loaders[ext]) {
