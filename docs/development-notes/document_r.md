@@ -259,3 +259,54 @@ image_options_defaults.json
     "imageType": 1
 }
 ```
+Image options
+```typescript
+ImageFromUrlOptions = {
+  // the resolvable URL pointing to a nifti image to load
+  url: string
+  // Allows loading formats where header and image are separate files (e.g. nifti.hdr, nifti.img)
+  urlImageData?: string
+  // headers to use in the fetch call
+  headers?: Record<string, string>
+  // a name for this image (defaults to empty)
+  name?: string
+  // a color map to use (defaults to gray)
+  colorMap?: string
+  // TODO see duplicate usage in niivue/loadDocument
+  colormap?: string
+  // the opacity for this image (defaults to 1)
+  opacity?: number
+  // minimum intensity for color brightness/contrast
+  cal_min?: number
+  // maximum intensity for color brightness/contrast
+  cal_max?: number
+  // whether or not to trust cal_min and cal_max from the nifti header (trusting results in faster loading, defaults to true)
+  trustCalMinMax?: boolean
+  // the percentile to use for setting the robust range of the display values (smart intensity setting for images with large ranges, defaults to 0.02)
+  percentileFrac?: number
+  // whether or not to use QForm over SForm constructing the NVImage instance (defaults to false)
+  useQFormNotSForm?: boolean
+  // if true, values below cal_min are shown as translucent, not transparent (defaults to false)
+  alphaThreshold?: boolean
+  // a color map to use for negative intensities
+  colormapNegative?: string
+  // backwards compatible option
+  colorMapNegative?: string
+  // minimum intensity for colormapNegative brightness/contrast (NaN for symmetrical cal_min)
+  cal_minNeg?: number
+  // maximum intensity for colormapNegative brightness/contrast (NaN for symmetrical cal_max)
+  cal_maxNeg?: number
+  // show/hide colormaps (defaults to true)
+  colorbarVisible?: boolean
+  // TODO the following fields were not documented
+  ignoreZeroVoxels?: boolean
+  imageType?: ImageType
+  frame4D?: number
+  colormapLabel?: LUT | null
+  pairedImgData?: null
+  limitFrames4D?: number
+  isManifest?: boolean
+  urlImgData?: string
+  buffer?: ArrayBuffer
+}
+```
