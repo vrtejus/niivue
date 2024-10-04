@@ -1,4 +1,5 @@
 import { mat4, vec2, vec3, vec4 } from 'gl-matrix'
+import { NVScreenText } from './nvtext.js'
 
 export enum HorizontalAlignment {
     NONE = 'none',
@@ -55,6 +56,21 @@ export interface UIComponent {
     render(dimsions?: NVRenderDimensions): void
 }
 
+export function isUIComponent(obj: any): obj is UIComponent {
+    return (
+        obj !== null &&
+        typeof obj === 'object' &&
+        typeof obj.getScreenPosition === 'function' &&
+        typeof obj.setScreenPosition === 'function' &&
+        typeof obj.getScreenWidth === 'function' &&
+        typeof obj.getScreenHeight === 'function' &&
+        typeof obj.getColor === 'function' &&
+        typeof obj.setColor === 'function' &&
+        typeof obj.isVisible === 'boolean' &&
+        typeof obj.render === 'function'
+    )
+}
+
 export interface UIComponentContainer {
     children: UIComponent[]
     updateChildrenProjectedPositions(leftTopWidthHeight: number[], mvpMatrix: mat4): void
@@ -72,6 +88,8 @@ export interface UIModelComponent {
     updateProjectedPosition(leftTopWidthHeight: number[], mvpMatrix: mat4)
     isRenderedIn2D: boolean
     isRenderedIn3D: boolean
+    isVisibleIn2D: boolean
+    isVisibleIn3D: boolean
 }
 
 export function isModelComponent(obj: any): obj is UIModelComponent {
@@ -97,4 +115,15 @@ export interface AnchoredComponent extends UIComponent {
 
 export function isAnchoredComponent(obj: any): obj is AlignableComponent {
     return obj && typeof obj.anchor === 'function'
+}
+
+export interface ProjectedScreenObject extends UIComponent {
+    screenDepth: number
+}
+
+export function isProjectedScreenObject(obj: any): obj is ProjectedScreenObject {
+    return (
+        typeof obj.screenDepth === 'number' &&
+        isUIComponent(obj)
+    )
 }

@@ -122,7 +122,9 @@ import {
   unpackFloatFromVec4i
 } from './utils.js'
 import { NVFont } from '../ui/nvfont.js'
-import { isModelComponent, UIComponent } from '../ui/nvui-component.js'
+import { isModelComponent, isProjectedScreenObject, ProjectedScreenObject, UIComponent } from '../ui/nvui-component.js'
+import { FramebufferManager } from "../framebuffer-manager.js"
+import { NVModelText, NVScreenText } from '../ui/nvtext.js'
 export { NVMesh, NVMeshFromUrlOptions, NVMeshLayerDefaults } from '../nvmesh.js'
 export { NVController } from '../nvcontroller.js'
 export { ColorTables as colortables, cmapper } from '../colortables.js'
@@ -406,6 +408,7 @@ export class Niivue {
   private resizeObserver: ResizeObserver | null = null
   syncOpts: Record<string, unknown> = {}
   readyForSync = false
+  framebufferManager: FramebufferManager
 
   // UI Data
   uiData: UIData = {
@@ -891,7 +894,7 @@ export class Niivue {
       alpha: true,
       antialias: isAntiAlias
     })
-
+    this.framebufferManager = new FramebufferManager(this.gl, this.canvas.width, this.canvas.height)
     log.info('NIIVUE VERSION ', version)
 
     // set parent background container to black (default empty canvas color)
@@ -1062,6 +1065,11 @@ export class Niivue {
       this.canvas.width = this.canvas.offsetWidth * this.uiData.dpr
       this.canvas.height = this.canvas.offsetHeight * this.uiData.dpr
     }
+
+    // reallocate our framebuffer
+    this.framebufferManager.cleanup()
+    this.framebufferManager = new FramebufferManager(this.gl, this.canvas.width, this.canvas.height)
+
     this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height)
     this.drawScene()
   }
@@ -8395,6 +8403,55 @@ export class Niivue {
     return AxyzMxy
   }
 
+  filterOccludedObjects(objects: ProjectedScreenObject[]): ProjectedScreenObject[] {
+    // Sort objects by screenDepth in ascending order (closest to farthest)
+    const sortedObjects = objects.slice().sort((a, b) => a.screenDepth - b.screenDepth)
+
+    // Keep track of visible regions
+    const visibleObjects: ProjectedScreenObject[] = []
+    const occupiedRegions: { [key: string]: boolean } = {}
+
+    for (let obj of sortedObjects) {
+      const position = obj.getScreenPosition()
+      const width = obj.getScreenWidth()
+      const height = obj.getScreenHeight()
+
+      // Determine the rectangular region occupied by this object
+      const xMin = position[0]
+      const xMax = position[0] + width
+      const yMin = position[1]
+      const yMax = position[1] + height
+
+      let isOccluded = false
+
+      // Check if any part of this object's region is already occupied
+      for (let x = Math.floor(xMin); x <= Math.ceil(xMax); x++) {
+        for (let y = Math.floor(yMin); y <= Math.ceil(yMax); y++) {
+          const key = `${x},${y}`
+          if (occupiedRegions[key]) {
+            isOccluded = true
+            break
+          }
+        }
+        if (isOccluded) break
+      }
+
+      // If not occluded, mark the region as occupied and add the object to visibleObjects
+      if (!isOccluded) {
+        for (let x = Math.floor(xMin); x <= Math.ceil(xMax); x++) {
+          for (let y = Math.floor(yMin); y <= Math.ceil(yMax); y++) {
+            const key = `${x},${y}`
+            occupiedRegions[key] = true
+          }
+        }
+        visibleObjects.push(obj)
+      }
+    }
+
+    return visibleObjects
+  }
+
+
   // not included in public docs
   // draw 2D tile
   draw2DMain(leftTopWidthHeight: number[], axCorSag: SLICE_TYPE, customMM = NaN): void {
@@ -8593,38 +8650,62 @@ export class Niivue {
       this.drawSliceOrientationText(leftTopWidthHeight, axCorSag)
     }
 
-    // draw ui components
+    const projectedScreenObjects: ProjectedScreenObject[] = []
+
+    // updated ui components positions
     for (const component of this.uiComponents) {
-      if (!component.isVisible) {
+      if (!component.isVisible || !isModelComponent(component)) {
         continue
       }
 
-      if (isModelComponent(component)) {
-        const fracPoint = this.mm2frac(component.getModelPosition())
-        const hideDepth = component.getHideDepth() / 2  // make this equivalent to clip space hide depth
-        if (hideDepth) {
-          switch (axCorSag) {
-            case SLICE_TYPE.SAGITTAL:
-              if (Math.abs(sliceFrac - fracPoint[0]) > hideDepth) {
-                continue
-              }
-              break
-            case SLICE_TYPE.CORONAL:
-              if (Math.abs(sliceFrac - fracPoint[1]) > hideDepth) {
-                continue
-              }
-              break
-            case SLICE_TYPE.AXIAL:
-              if (Math.abs(sliceFrac - fracPoint[2]) > hideDepth) {
-                continue
-              }
-              break
-          }
-        }
-        component.updateProjectedPosition(leftTopWidthHeight, obj.modelViewProjectionMatrix)
+
+      if (!component.isRenderedIn2D) {
+        continue
       }
+
+      const fracPoint = this.mm2frac(component.getModelPosition())
+      const hideDepth = component.getHideDepth() / 2  // make this equivalent to clip space hide depth
+      if (hideDepth) {
+        switch (axCorSag) {
+          case SLICE_TYPE.SAGITTAL:
+            if (Math.abs(sliceFrac - fracPoint[0]) > hideDepth) {
+              component.isVisibleIn2D = false
+              continue
+            }
+            break
+          case SLICE_TYPE.CORONAL:
+            if (Math.abs(sliceFrac - fracPoint[1]) > hideDepth) {
+              component.isVisibleIn2D = false
+              continue
+            }
+            break
+          case SLICE_TYPE.AXIAL:
+            if (Math.abs(sliceFrac - fracPoint[2]) > hideDepth) {
+              component.isVisibleIn2D = false
+              continue
+            }
+            break
+        }
+      }
+      component.updateProjectedPosition(leftTopWidthHeight, obj.modelViewProjectionMatrix)
+      if (isProjectedScreenObject(component)) {
+        projectedScreenObjects.push(component)
+      }
+    }
+
+    // draw ui components that are not projected 
+    for (const component of this.uiComponents) {
+      if (!component.isVisible || isProjectedScreenObject(component)) {
+        continue
+      }
+    }
+
+    // draw projected ui components that are not occluded
+    const visibleScreenObjects = this.filterOccludedObjects(projectedScreenObjects)
+    for (const component of visibleScreenObjects) {
       component.render()
     }
+
     this.readyForSync = true
   }
 
@@ -9145,7 +9226,7 @@ export class Niivue {
 
   // not included in public docs
   // display 3D volume rendering of NVImage
-  drawImage3D(mvpMatrix: mat4, azimuth: number, elevation: number): void {
+  drawImage3D(mvpMatrix: mat4, azimuth: number, elevation: number, isPicking = false): void {
     if (this.volumes.length === 0) {
       return
     }
@@ -9157,10 +9238,7 @@ export class Niivue {
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
       gl.enable(gl.CULL_FACE)
       gl.cullFace(gl.FRONT) // TH switch since we L/R flipped in calculateMvpMatrix
-      let shader = this.renderShader!
-      if (this.uiData.mouseDepthPicker) {
-        shader = this.pickingImageShader!
-      }
+      let shader = (isPicking) ? this.pickingImageShader : this.renderShader!
       shader.use(this.gl)
       // next lines optional: these textures should be bound by default
       // these lines can cause warnings, e.g. if drawTexture not used or created
@@ -9741,6 +9819,32 @@ export class Niivue {
     }
   }
 
+  draw3DPick(leftTopWidthHeight = [0, 0, 0, 0],
+    mvpMatrix: mat4 | null = null, modelMatrix: mat4 | null = null,
+    normalMatrix: mat4 | null = null,
+    azimuth: number | null = null,
+    elevation = 0) {
+    const gl = this.gl
+
+    this.framebufferManager.bindFramebuffer()
+    // Set the viewport to the framebuffer size
+    gl.viewport(0, 0, leftTopWidthHeight[2], leftTopWidthHeight[3]);
+
+    // Clear the framebuffer's color and depth buffers
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    const isMosaic = azimuth !== null
+    // render with picker
+    if (this.volumes.length > 0) {
+      this.drawImage3D(mvpMatrix, azimuth!, elevation, true)
+    }
+    this.drawMesh3D(true, 1.0, mvpMatrix, modelMatrix!, normalMatrix!, true)
+
+    // Unbind the framebuffer so we can switch back to it later
+    // gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    this.framebufferManager.unbindFramebuffer()
+  }
+
   // not included in public docs
   draw3D(
     leftTopWidthHeight = [0, 0, 0, 0],
@@ -9784,6 +9888,29 @@ export class Niivue {
         fovMM: [isRadiological(modelMatrix!), 0]
       })
       leftTopWidthHeight[1] = gl.canvas.height - leftTopWidthHeight[3] - leftTopWidthHeight[1]
+    }
+    this.draw3DPick(leftTopWidthHeight, mvpMatrix, modelMatrix, normalMatrix, azimuth, elevation)
+    for (const component of this.uiComponents) {
+      if (!component.isVisible) {
+        continue
+      }
+
+      if (isModelComponent(component) && component.isRenderedIn3D) {
+        const hideDepth = component.getHideDepth() / 2  // make this equivalent to clip space hide depth
+        component.isVisibleIn3D = true
+        if (hideDepth) {
+          const modelPoint = component.getModelPosition()
+          if (this.isModelPointClippedByPlane(modelPoint, mvpMatrix)) {
+            component.isVisibleIn3D = false
+          }
+
+          const depth = this.getModelPointDepth(modelPoint as [number, number, number], mvpMatrix, leftTopWidthHeight)
+          if (depth > hideDepth) {
+            component.isVisibleIn3D = false
+          }
+        }
+        component.updateProjectedPosition(leftTopWidthHeight, mvpMatrix)
+      }
     }
 
     gl.enable(gl.DEPTH_TEST)
@@ -9840,19 +9967,9 @@ export class Niivue {
       }
 
       if (isModelComponent(component)) {
-        const hideDepth = component.getHideDepth() / 2  // make this equivalent to clip space hide depth
-        if (hideDepth) {
-          const modelPoint = component.getModelPosition()
-          if (this.isModelPointClippedByPlane(modelPoint, mvpMatrix)) {
-            continue
-          }
-
-          const depth = this.getModelPointDepth(modelPoint as [number, number, number], mvpMatrix, leftTopWidthHeight)
-          if (depth > hideDepth) {
-            continue
-          }
+        if (!component.isRenderedIn3D || !component.isVisibleIn3D) {
+          continue
         }
-        component.updateProjectedPosition(leftTopWidthHeight, mvpMatrix)
       }
       component.render()
     }
@@ -9862,7 +9979,7 @@ export class Niivue {
 
   // not included in public docs
   // create 3D rendering of NVMesh on canvas
-  drawMesh3D(isDepthTest = true, alpha = 1.0, m?: mat4, modelMtx?: mat4, normMtx?: mat4): void {
+  drawMesh3D(isDepthTest = true, alpha = 1.0, m?: mat4, modelMtx?: mat4, normMtx?: mat4, isPicking = false): void {
     if (this.meshes.length < 1) {
       return
     }
@@ -9905,7 +10022,7 @@ export class Niivue {
         continue
       }
       shader = this.meshShaders[this.meshes[i].meshShaderIndex].shader!
-      if (this.uiData.mouseDepthPicker) {
+      if (isPicking) {
         shader = this.pickingMeshShader!
       }
       shader.use(this.gl) // set Shader

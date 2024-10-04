@@ -8,6 +8,8 @@ export class NVModelComponent implements UIModelComponent {
     private hideDepth: number // clip space depth to hide control
     public isRenderedIn2D: boolean
     public isRenderedIn3D: boolean
+    public isVisibleIn2D = false
+    public isVisibleIn3D = false
 
     constructor(modelPosition: vec3, hideDepth: number = 0, isRenderedIn2D = true, isRenderedIn3D = true, isVisible = true) {
         this.modelPosition = modelPosition

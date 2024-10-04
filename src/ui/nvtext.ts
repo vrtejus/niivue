@@ -1,6 +1,6 @@
 import { NVFont } from './nvfont.js'
 import { mat4, vec2, vec3, vec4 } from 'gl-matrix'
-import { UIComponent, UIModelComponent } from './nvui-component.js'
+import { ProjectedScreenObject, UIComponent, UIModelComponent } from './nvui-component.js'
 import { NVModelComponent } from './nvmodel-component.js'
 
 
@@ -52,11 +52,14 @@ export class NVScreenText implements UIComponent {
     }
 }
 
-export class NVModelText extends NVScreenText implements UIModelComponent {
+export class NVModelText extends NVScreenText implements UIModelComponent, ProjectedScreenObject {
     private modelPosition: vec3 // 3D position in model space
     private hideDepth: number // clip space depth to hide control
     public isRenderedIn2D: boolean
     public isRenderedIn3D: boolean
+    public isVisibleIn2D = false
+    public isVisibleIn3D = false
+    public screenDepth = -1
 
     constructor(
         text: string,
@@ -74,6 +77,7 @@ export class NVModelText extends NVScreenText implements UIModelComponent {
         this.isRenderedIn2D = isRenderedIn2D
         this.isRenderedIn3D = isRenderedIn3D
     }
+
 
     // NVUiComponent Interface    
     // Get the 2D screen position
@@ -101,10 +105,9 @@ export class NVModelText extends NVScreenText implements UIModelComponent {
 
             screenPoint[0] += leftTopWidthHeight[0]
             screenPoint[1] += leftTopWidthHeight[1]
+
+            this.screenDepth = screenPoint[2]
             this.screenPosition = vec2.fromValues(screenPoint[0], screenPoint[1])
-        }
-        else {
-            this.isVisible = false
         }
     }
 
