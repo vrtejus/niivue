@@ -101,7 +101,7 @@ export class NVModelText extends NVScreenText implements UIModelComponent {
 
             screenPoint[0] += leftTopWidthHeight[0]
             screenPoint[1] += leftTopWidthHeight[1]
-
+            this.screenPosition = vec2.fromValues(screenPoint[0], screenPoint[1])
         }
         else {
             this.isVisible = false

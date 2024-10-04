@@ -122,6 +122,7 @@ import {
   unpackFloatFromVec4i
 } from './utils.js'
 import { NVFont } from '../ui/nvfont.js'
+import { isModelComponent, UIComponent } from '../ui/nvui-component.js'
 export { NVMesh, NVMeshFromUrlOptions, NVMeshLayerDefaults } from '../nvmesh.js'
 export { NVController } from '../nvcontroller.js'
 export { ColorTables as colortables, cmapper } from '../colortables.js'
@@ -134,7 +135,7 @@ export { NVUtilities } from '../nvutilities.js'
 export { LabelTextAlignment, LabelLineTerminator, NVLabel3DStyle, NVLabel3D, LabelAnchorPoint } from '../nvlabel.js'
 export { NVMeshLoaders } from '../nvmesh-loaders.js'
 export { NVMeshUtilities } from '../nvmesh-utilities.js'
-
+export { NVModelText, NVScreenText } from '../ui/nvtext.js'
 // same rollup error as above during npm run dev, and during the umd build
 // TODO: at least remove the umd build when AFNI do not need it anymore
 export * from '../types.js'
@@ -755,6 +756,7 @@ export class Niivue {
   currentDrawUndoBitmap: number
   loadingText: string
   defaultFont: NVFont
+  uiComponents: UIComponent[] = []
   /**
    * @param options  - options object to set modifiable Niivue properties
    */
@@ -8041,30 +8043,6 @@ export class Niivue {
 
   // not included in public docs
   drawText(xy: number[], str: string, scale = 1, color: Float32List | null = null): void {
-    // if (this.opts.textHeight <= 0) {
-    //   return
-    // }
-    // if (!this.fontShader) {
-    //   throw new Error('fontShader undefined')
-    // }
-    // this.fontShader.use(this.gl)
-    // // let size = this.opts.textHeight * this.gl.canvas.height * scale;
-    // const size = this.opts.textHeight * Math.min(this.gl.canvas.height, this.gl.canvas.width) * scale
-    // this.gl.enable(this.gl.BLEND)
-    // this.gl.uniform2f(this.fontShader.uniforms.canvasWidthHeight, this.gl.canvas.width, this.gl.canvas.height)
-    // if (color === null) {
-    //   color = this.opts.fontColor
-    // }
-    // this.gl.uniform4fv(this.fontShader.uniforms.fontColor, color as Float32List)
-    // let screenPxRange = (size / this.fontMets!.size) * this.fontMets!.distanceRange
-    // screenPxRange = Math.max(screenPxRange, 1.0) // screenPxRange() must never be lower than 1
-    // this.gl.uniform1f(this.fontShader.uniforms.screenPxRange, screenPxRange)
-    // const bytes = new TextEncoder().encode(str)
-    // this.gl.bindVertexArray(this.genericVAO)
-    // for (let i = 0; i < str.length; i++) {
-    //   xy[0] += this.drawChar(xy, size, bytes[i])
-    // }
-    // this.gl.bindVertexArray(this.unusedVAO)
     this.defaultFont.drawText(xy, str, scale, color)
   }
 
@@ -8613,6 +8591,39 @@ export class Niivue {
     if (isStretchToScreen) {
       // issue1065
       this.drawSliceOrientationText(leftTopWidthHeight, axCorSag)
+    }
+
+    // draw ui components
+    for (const component of this.uiComponents) {
+      if (!component.isVisible) {
+        continue
+      }
+
+      if (isModelComponent(component)) {
+        const fracPoint = this.mm2frac(component.getModelPosition())
+        const hideDepth = component.getHideDepth() / 2  // make this equivalent to clip space hide depth
+        if (hideDepth) {
+          switch (axCorSag) {
+            case SLICE_TYPE.SAGITTAL:
+              if (Math.abs(sliceFrac - fracPoint[0]) > hideDepth) {
+                continue
+              }
+              break
+            case SLICE_TYPE.CORONAL:
+              if (Math.abs(sliceFrac - fracPoint[1]) > hideDepth) {
+                continue
+              }
+              break
+            case SLICE_TYPE.AXIAL:
+              if (Math.abs(sliceFrac - fracPoint[2]) > hideDepth) {
+                continue
+              }
+              break
+          }
+        }
+        component.updateProjectedPosition(leftTopWidthHeight, obj.modelViewProjectionMatrix)
+      }
+      component.render()
     }
     this.readyForSync = true
   }
@@ -9660,6 +9671,76 @@ export class Niivue {
     }
   }
 
+  /**
+     * Checks if a point in model space is clipped by a clip plane in clip space.
+     *
+     * @param point - The 3D point in model space (object coordinates).
+     * @param mvpMatrix - The Model-View-Projection matrix to transform the point to clip space.
+     * @returns {boolean} - True if the point is clipped, false otherwise.
+     */
+  public isModelPointClippedByPlane(point: vec3, mvpMatrix: mat4): boolean {
+    // Step 1: Convert the point to homogeneous coordinates by adding w = 1.0
+    const pointHomogeneous = vec4.fromValues(point[0], point[1], point[2], 1.0);
+
+    // Step 2: Transform the point by the MVP matrix to convert it to clip space
+    const pointClip = vec4.create();
+    vec4.transformMat4(pointClip, pointHomogeneous, mvpMatrix);
+
+    const clipPlane = this.document.scene.clipPlane;
+    // Step 3: Apply the clip plane equation in clip space: ax + by + cz + dw = 0
+    const a = clipPlane[0];
+    const b = clipPlane[1];
+    const c = clipPlane[2];
+    const d = clipPlane[3];
+
+    // Calculate the distance from the point to the clip plane in clip space
+    const distance = a * pointClip[0] + b * pointClip[1] + c * pointClip[2] + d * pointClip[3];
+
+    // If the distance is negative, the point is considered clipped by the plane
+    return distance < 0;
+  }
+
+  /**
+  * 
+  * @param point 
+  * @param mvpMatrix 
+  * @param leftTopWidthHeight 
+  * @param allowedDepth - Allowed depth in clip space
+  * @returns 
+  */
+  getModelPointDepth(point: [number, number, number], mvpMatrix: mat4, leftTopWidthHeight: number[]): number {
+    const gl = this.gl
+    const clipPoint = vec4.create()
+    // Multiply the 3D point by the model-view-projection matrix
+    const modelPoint = vec4.fromValues(...point, 1.0)
+    vec4.transformMat4(clipPoint, modelPoint, mvpMatrix)
+    const screenPoint = this.calculateScreenPoint(point, mvpMatrix, leftTopWidthHeight)
+
+    // Convert the 4D point to 2D screen coordinates
+    if (screenPoint[3] !== 0.0) {
+      // determine what labels are visible
+      const rgbaPixel = new Uint8Array(4)
+      gl.readPixels(
+        screenPoint[0], // x
+        screenPoint[1], // y
+        1, // width
+        1, // height
+        gl.RGBA, // format
+        gl.UNSIGNED_BYTE, // type
+        rgbaPixel
+      )
+
+      const mm = this.frac2mm(vec3.fromValues(rgbaPixel[0] / 255.0, rgbaPixel[1] / 255.0, rgbaPixel[2] / 255.0))
+      const modelClipPoint = vec4.create()
+      vec4.transformMat4(modelClipPoint, mm, mvpMatrix)
+      const dist = Math.abs(modelClipPoint[2] - clipPoint[2])
+      return dist
+    }
+    else {
+      return -1 // clipped
+    }
+  }
+
   // not included in public docs
   draw3D(
     leftTopWidthHeight = [0, 0, 0, 0],
@@ -9752,6 +9833,29 @@ export class Niivue {
     this.readyForSync = true
     this.sync()
     this.draw3DLabels(mvpMatrix, relativeLTWH, true)
+
+    for (const component of this.uiComponents) {
+      if (!component.isVisible) {
+        continue
+      }
+
+      if (isModelComponent(component)) {
+        const hideDepth = component.getHideDepth() / 2  // make this equivalent to clip space hide depth
+        if (hideDepth) {
+          const modelPoint = component.getModelPosition()
+          if (this.isModelPointClippedByPlane(modelPoint, mvpMatrix)) {
+            continue
+          }
+
+          const depth = this.getModelPointDepth(modelPoint as [number, number, number], mvpMatrix, leftTopWidthHeight)
+          if (depth > hideDepth) {
+            continue
+          }
+        }
+        component.updateProjectedPosition(leftTopWidthHeight, mvpMatrix)
+      }
+      component.render()
+    }
 
     return posString
   }

@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Model Texts</title>
+    <link rel="stylesheet" href="light.css" />
+</head>
+
+<body>
+    <noscript>
+        <strong>niivue requires JavaScript.</strong>
+    </noscript>
+    <header>
+        <select id="sliceType">
+            <option value="0">Axial</option>
+            <option value="1">Coronal</option>
+            <option value="2">Sagittal</option>
+            <option value="4">Render</option>
+            <option value="3" selected>A+C+S+R</option>
+        </select>
+    </header>
+    <main id="container">
+        <canvas id="gl1"></canvas>
+    </main>
+    <footer id="intensity">&nbsp;</footer>
+</body>
+
+</html>
+<!-- <script type="module" async></script> -->
+<script type="module" async>
+    import * as niivue from "../dist/index.js";
+
+    var drop = document.getElementById("sliceType");
+    drop.onchange = function () {
+        let st = parseInt(document.getElementById("sliceType").value);
+        nv1.setSliceType(st);
+    }
+    function handleIntensityChange(data) {
+        document.getElementById("intensity").innerHTML =
+            "&nbsp;&nbsp;" + data.string;
+        console.log(data);
+    }
+    var volumeList1 = [
+        {
+            url: "../images/mni152.nii.gz",
+            colormap: "gray",
+            visible: true,
+            opacity: 1
+        },
+        {
+            url: "../images/hippo.nii.gz",
+            colormap: "red",
+            visible: true,
+            opacity: 1
+        }
+    ];
+    var nv1 = new niivue.Niivue({
+        dragAndDropEnabled: true,
+        multiplanarForceRender: true,
+    });
+    nv1.attachTo("gl1");
+    await nv1.loadVolumes(volumeList1);
+    nv1.setSliceType(nv1.sliceTypeMultiplanar);
+    let text3D
+    text3D = new niivue.NVModelText('Hippocampus', nv1.defaultFont, [-25.0, -15.0, -25.0], [0, 1.0, 0.0, 1.0], 1.0, 0.1)
+    nv1.uiComponents.push(text3D)
+    text3D = new niivue.NVModelText('center', nv1.defaultFont, [0.0, 0.0, 0.0], [0, 0.0, 1.0, 1.0], 1.0, 0.1)
+    nv1.uiComponents.push(text3D)
+    text3D = new niivue.NVModelText('Precentral Gyrus', nv1.defaultFont, [-42.0, -16.0, 54.0], [0, 1.0, 0.0, 1.0], 1.0, 0.1)
+    nv1.uiComponents.push(text3D)
+    text3D = new niivue.NVModelText('Postcentral Gyrus', nv1.defaultFont, [38.0, -34.0, 50.0], [0, 1.0, 0.0, 1.0], 1.0, 0.1)
+    nv1.uiComponents.push(text3D)
+    text3D = new niivue.NVModelText('Superior Temporal Gyrus', nv1.defaultFont, [60.0, -24.0, 6.0], [0, 1.0, 0.0, 1.0], 1.0, 0.1)
+    nv1.uiComponents.push(text3D)
+    text3D = new niivue.NVModelText('Middle Temporal Gyrus', nv1.defaultFont, [-54.0, -44.0, 0.0], [0, 1.0, 0.0, 1.0], 1.0, 0.1)
+    nv1.uiComponents.push(text3D)
+    text3D = new niivue.NVModelText('Inferior Parietal Lobule', nv1.defaultFont, [-56.0, -36.0, 40.0], [0, 1.0, 0.0, 1.0], 1.0, 0.1)
+    nv1.uiComponents.push(text3D)
+    text3D = new niivue.NVModelText('Precuneus', nv1.defaultFont, [4.0, -64.0, 36.0], [0, 1.0, 0.0, 1.0], 1.0, 0.1)
+    nv1.uiComponents.push(text3D)
+    text3D = new niivue.NVModelText('Cingulate Gyrus', nv1.defaultFont, [0.0, -12.0, 38.0], [0, 1.0, 0.0, 1.0], 1.0, 0.1)
+    nv1.uiComponents.push(text3D)
+    text3D = new niivue.NVModelText('Hippocampus', nv1.defaultFont, [-28.0, -20.0, -12.0], [0, 1.0, 0.0, 1.0], 1.0, 0.1)
+    nv1.uiComponents.push(text3D)
+    text3D = new niivue.NVModelText('Amygdala', nv1.defaultFont, [-20.0, -2.0, -18.0], [0, 1.0, 0.0, 1.0], 1.0, 0.1)
+    nv1.uiComponents.push(text3D)
+    text3D = new niivue.NVModelText('Caudate Nucleus', nv1.defaultFont, [10.0, 16.0, 4.0], [0, 1.0, 0.0, 1.0], 1.0, 0.1)
+    nv1.uiComponents.push(text3D)
+    text3D = new niivue.NVModelText('Thalamus', nv1.defaultFont, [-12.0, -14.0, 10.0], [0, 1.0, 0.0, 1.0], 1.0, 0.1)
+    nv1.uiComponents.push(text3D)
+    text3D = new niivue.NVModelText('Putamen', nv1.defaultFont, [28.0, 4.0, -2.0], [0, 1.0, 0.0, 1.0], 1.0, 0.1)
+    nv1.uiComponents.push(text3D)
+    text3D = new niivue.NVModelText('Pallidum', nv1.defaultFont, [-16.0, -4.0, -4.0], [0, 1.0, 0.0, 1.0], 1.0, 0.1)
+    nv1.uiComponents.push(text3D)
+    text3D = new niivue.NVModelText('Insula', nv1.defaultFont, [38.0, -2.0, 8.0], [0, 1.0, 0.0, 1.0], 1.0, 0.1)
+    nv1.uiComponents.push(text3D)
+    text3D = new niivue.NVModelText('Fusiform Gyrus', nv1.defaultFont, [-36.0, -50.0, -20.0], [0, 1.0, 0.0, 1.0], 1.0, 0.1)
+    nv1.uiComponents.push(text3D)
+    text3D = new niivue.NVModelText('Anterior Cingulate Cortex', nv1.defaultFont, [2.0, 30.0, 22.0], [0, 1.0, 0.0, 1.0], 1.0, 0.1)
+    nv1.uiComponents.push(text3D)
+    text3D = new niivue.NVModelText('Superior Frontal Gyrus', nv1.defaultFont, [-14.0, 46.0, 32.0], [0, 1.0, 0.0, 1.0], 1.0, 0.1)
+    nv1.uiComponents.push(text3D)
+    text3D = new niivue.NVModelText('Lingual Gyrus', nv1.defaultFont, [4.0, -70.0, 4.0], [0, 1.0, 0.0, 1.0], 1.0, 0.1)
+    nv1.uiComponents.push(text3D)
+    text3D = new niivue.NVModelText('Supramarginal Gyrus', nv1.defaultFont, [56.0, -42.0, 36.0], [0, 1.0, 0.0, 1.0], 1.0, 0.1)
+    nv1.uiComponents.push(text3D)
+    text3D = new niivue.NVModelText('Superior Parietal Lobule', nv1.defaultFont, [-20.0, -60.0, 56.0], [0, 1.0, 0.0, 1.0], 1.0, 0.1)
+    nv1.uiComponents.push(text3D)
+    nv1.drawScene()
+</script>
