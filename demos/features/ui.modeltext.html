@@ -65,8 +65,6 @@
     await nv1.loadVolumes(volumeList1);
     nv1.setSliceType(nv1.sliceTypeMultiplanar);
     let text3D
-    text3D = new niivue.NVModelText('Hippocampus', nv1.defaultFont, [-25.0, -15.0, -25.0], [0, 1.0, 0.0, 1.0], 1.0, 0.1)
-    nv1.uiComponents.push(text3D)
     text3D = new niivue.NVModelText('center', nv1.defaultFont, [0.0, 0.0, 0.0], [0, 0.0, 1.0, 1.0], 1.0, 0.1)
     nv1.uiComponents.push(text3D)
     text3D = new niivue.NVModelText('Precentral Gyrus', nv1.defaultFont, [-42.0, -16.0, 54.0], [0, 1.0, 0.0, 1.0], 1.0, 0.1)
