@@ -63,7 +63,7 @@
     });
     nv1.attachTo("gl1");
     await nv1.loadVolumes(volumeList1);
-    nv1.setSliceType(nv1.sliceTypeMultiplanar);
+    nv1.setSliceType(nv1.sliceTypeAxial);
     let text3D
     text3D = new niivue.NVModelText('center', nv1.defaultFont, [0.0, 0.0, 0.0], [0, 0.0, 1.0, 1.0], 1.0, 0.1)
     nv1.uiComponents.push(text3D)
