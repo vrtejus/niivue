@@ -8462,12 +8462,13 @@ export class Niivue {
     leftTopWidthHeight: number[],
     sliceType: SLICE_TYPE,
     sliceFrac: number,
+    mvpMatrix: mat4,
     projectedScreenObjects: ProjectedScreenObject[]
   ): void {
     if (isModelComponent(component)) {
       const fracPoint = this.mm2frac(component.getModelPosition())
       // console.log('frac point', fracPoint)
-      // console.log('bounding box and slice', leftTopWidthHeight, sliceType)
+      console.log('bounding box and slice', leftTopWidthHeight, sliceType)
       const hideDepth = component.getHideDepth() / 2 // make this equivalent to clip space hide depth
       component.isVisibleIn2D = true
       let xDimension: number
@@ -8505,11 +8506,14 @@ export class Niivue {
       // 
       // const x = leftTopWidthHeight[0] + fracPoint[xDimension] / this.uiData.dpr * leftTopWidthHeight[2]
       // const y = leftTopWidthHeight[1] + leftTopWidthHeight[3] - fracPoint[yDimension] / this.uiData.dpr * leftTopWidthHeight[3]
-      const x = leftTopWidthHeight[0] + fracPoint[xDimension] * leftTopWidthHeight[2]
-      const y = leftTopWidthHeight[1] + leftTopWidthHeight[3] - fracPoint[yDimension] * leftTopWidthHeight[3]
-      const projectedPosition = vec2.fromValues(x, y)
-      // console.log('projected position', projectedPosition)
+      // const x = leftTopWidthHeight[0] + fracPoint[xDimension] * leftTopWidthHeight[2]
+      // const y = leftTopWidthHeight[1] + leftTopWidthHeight[3] - fracPoint[yDimension] * leftTopWidthHeight[3]
+
+      const screenPosition = this.calculateScreenPoint(component.getModelPosition() as [number, number, number], mvpMatrix, leftTopWidthHeight).slice(0, 2)
+      const projectedPosition = vec2.fromValues(screenPosition[0], screenPosition[1])
+
       component.setProjectedPosition(projectedPosition)
+      console.log('projected position', projectedPosition)
 
       // If the component is a ProjectedScreenObject, add it to the list
       if (isProjectedScreenObject(component)) {
@@ -8520,7 +8524,7 @@ export class Niivue {
     // If the component is a container, recursively update its children's positions
     if (isContainerComponent(component)) {
       for (const child of component.children) {
-        this.updateComponent2DProjectedPositions(child, leftTopWidthHeight, sliceType, sliceFrac, projectedScreenObjects)
+        this.updateComponent2DProjectedPositions(child, leftTopWidthHeight, sliceType, sliceFrac, mvpMatrix, projectedScreenObjects)
       }
     }
   }
@@ -8534,9 +8538,10 @@ export class Niivue {
     // Main loop that iterates over the UI components and updates their positions
     const projectedScreenObjects: ProjectedScreenObject[] = []
     for (const component of this.uiComponents) {
-      this.updateComponent2DProjectedPositions(component, leftTopWidthHeight, axCorSag, sliceFrac, projectedScreenObjects)
+      this.updateComponent2DProjectedPositions(component, leftTopWidthHeight, axCorSag, sliceFrac, mvpMatrix, projectedScreenObjects)
     }
 
+    this.gl.viewport(0, 0, this.gl.canvas.width, this.gl.canvas.height)
     // Draw projected UI components that are not occluded
     const visibleScreenObjects = this.filterOccludedObjects(projectedScreenObjects)
     for (const component of visibleScreenObjects) {
@@ -8545,6 +8550,7 @@ export class Niivue {
       }
       component.render(NVRenderDimensions.TWO)
     }
+    this.gl.viewport(leftTopWidthHeight[0], leftTopWidthHeight[1], leftTopWidthHeight[2], leftTopWidthHeight[3])
   }
 
   // not included in public docs
@@ -9498,21 +9504,77 @@ export class Niivue {
   }
 
   // not included in public docs
-  calculateScreenPoint(point: [number, number, number], mvpMatrix: mat4, leftTopWidthHeight: number[]): vec4 {
-    const screenPoint = vec4.create()
-    // Multiply the 3D point by the model-view-projection matrix
-    vec4.transformMat4(screenPoint, [...point, 1.0], mvpMatrix)
-    // Convert the 4D point to 2D screen coordinates
-    if (screenPoint[3] !== 0.0) {
-      screenPoint[0] = (screenPoint[0] / screenPoint[3] + 1.0) * 0.5 * leftTopWidthHeight[2]
-      screenPoint[1] = (1.0 - screenPoint[1] / screenPoint[3]) * 0.5 * leftTopWidthHeight[3]
-      screenPoint[2] /= screenPoint[3]
+  // calculateScreenPoint(point: [number, number, number], mvpMatrix: mat4, leftTopWidthHeight: number[]): vec4 {
+  //   const screenPoint = vec4.create()
 
-      screenPoint[0] += leftTopWidthHeight[0]
-      screenPoint[1] += leftTopWidthHeight[1]
+  //   // Multiply the 3D point by the model-view-projection matrix to get the clip space position
+  //   vec4.transformMat4(screenPoint, [...point, 1.0], mvpMatrix)
+
+  //   // Check for a non-zero w component before dividing
+  //   if (screenPoint[3] !== 0.0) {
+  //     // Convert from clip space to normalized device coordinates (NDC)
+  //     const ndcX = screenPoint[0] / screenPoint[3]
+  //     const ndcY = screenPoint[1] / screenPoint[3]
+
+  //     // Convert NDC to screen coordinates relative to the defined leftTopWidthHeight area
+  //     screenPoint[0] = (ndcX + 1.0) * 0.5 * leftTopWidthHeight[2] // Scale X to fit the width
+  //     screenPoint[1] = (1.0 - ndcY) * 0.5 * leftTopWidthHeight[3] // Scale Y to fit the height (invert Y)
+
+  //     // Apply the left and top offsets to position the point within the defined area
+  //     screenPoint[0] += leftTopWidthHeight[0] // Add left offset
+  //     screenPoint[1] += leftTopWidthHeight[1] // Add top offset
+
+  //     // Retain the Z position for depth information, and divide by W for correct depth scaling
+  //     screenPoint[2] = screenPoint[2] / screenPoint[3]
+  //   }
+
+  //   return screenPoint
+  // }
+  calculateScreenPoint(
+    point: [number, number, number],
+    mvpMatrix: mat4,
+    leftTopWidthHeight: number[]
+  ): vec4 {
+    const screenPoint = vec4.create()
+
+    // Access the canvas dimensions directly from the member variable
+    const canvasWidth = this.canvas.width
+    const canvasHeight = this.canvas.height
+
+    // Multiply the 3D point by the model-view-projection matrix to get clip space coordinates
+    vec4.transformMat4(screenPoint, [...point, 1.0], mvpMatrix)
+
+    // Check for a non-zero w component before performing perspective division
+    if (screenPoint[3] !== 0.0) {
+      // Convert from clip space to normalized device coordinates (NDC)
+      const ndcX = screenPoint[0] / screenPoint[3]
+      const ndcY = screenPoint[1] / screenPoint[3]
+
+      // Convert NDC to canvas coordinates based on the full canvas dimensions
+      const canvasX = (ndcX + 1.0) * 0.5 * canvasWidth
+      const canvasY = (1.0 - ndcY) * 0.5 * canvasHeight
+
+      // Log to check intermediate canvas coordinates
+      console.log('Canvas Coordinates:', { canvasX, canvasY })
+
+      // Scale and translate canvas coordinates to match leftTopWidthHeight bounds
+      const scaledX = leftTopWidthHeight[0] + (canvasX / canvasWidth) * leftTopWidthHeight[2]
+      const scaledY = leftTopWidthHeight[1] + (canvasY / canvasHeight) * leftTopWidthHeight[3]
+
+      // Set the transformed coordinates in screenPoint
+      screenPoint[0] = scaledX
+      screenPoint[1] = scaledY
+      screenPoint[2] = screenPoint[2] / screenPoint[3] // Retain depth information
+
+      // Log final screen coordinates
+      console.log('Final Screen Coordinates:', screenPoint)
+    } else {
+      console.warn('W component is zero. Cannot perform perspective division.')
     }
+
     return screenPoint
   }
+
 
   getLabelAtPoint(screenPoint: [number, number]): NVLabel3D | null {
     const scale = 1.0
