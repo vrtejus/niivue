@@ -108,7 +108,7 @@ import {
   NiiVueLocationValue
 } from '../types.js'
 import { NVFont } from '../ui/nvfont.js'
-import { anchorComponents, AnchoredComponent, isAlignableComponent, isAnchoredComponent, isModelComponent, isProjectedScreenObject, NVAnchorPoint, ProjectedScreenObject, UIComponent } from '../ui/nvui-component.js'
+import { anchorComponents, AnchoredComponent, isAlignableComponent, isAnchoredComponent, isContainerComponent, isModelComponent, isProjectedScreenObject, NVAnchorPoint, NVRenderDimensions, ProjectedScreenObject, UIComponent } from '../ui/nvui-component.js'
 import { FramebufferManager } from '../framebuffer-manager.js'
 import {
   clamp,
@@ -139,6 +139,7 @@ export { NVMeshUtilities } from '../nvmesh-utilities.js'
 export { NVModelText, NVScreenText } from '../ui/nvtext.js'
 export { NVArcContainer } from '../ui/nvcontainer-component.js'
 export { NVAnchorPoint } from '../ui/nvui-component.js'
+export { NVLabelLine } from '../ui/nvlabel-line.js'
 
 // same rollup error as above during npm run dev, and during the umd build
 // TODO: at least remove the umd build when AFNI do not need it anymore
@@ -8455,6 +8456,79 @@ export class Niivue {
     return visibleObjects
   }
 
+  // Function to recursively update projected positions for all components, including those in container components
+  updateComponent2DProjectedPositions(
+    component: UIComponent,
+    leftTopWidthHeight: number[],
+    mvpMatrix: mat4,
+    sliceType: SLICE_TYPE,
+    sliceFrac: number,
+    projectedScreenObjects: ProjectedScreenObject[]
+  ): void {
+    if (isModelComponent(component)) {
+      const fracPoint = this.mm2frac(component.getModelPosition())
+      const hideDepth = component.getHideDepth() / 2 // make this equivalent to clip space hide depth
+      component.isVisibleIn2D = true
+
+      if (hideDepth) {
+        switch (sliceType) {
+          case SLICE_TYPE.SAGITTAL:
+            if (Math.abs(sliceFrac - fracPoint[0]) > hideDepth) {
+              component.isVisibleIn2D = false
+            }
+            break
+          case SLICE_TYPE.CORONAL:
+            if (Math.abs(sliceFrac - fracPoint[1]) > hideDepth) {
+              component.isVisibleIn2D = false
+            }
+            break
+          case SLICE_TYPE.AXIAL:
+            if (Math.abs(sliceFrac - fracPoint[2]) > hideDepth) {
+              component.isVisibleIn2D = false
+            }
+            break
+        }
+      }
+
+      // Update the projected position for this component
+      component.updateProjectedPosition(leftTopWidthHeight, mvpMatrix)
+
+      // If the component is a ProjectedScreenObject, add it to the list
+      if (isProjectedScreenObject(component)) {
+        projectedScreenObjects.push(component)
+      }
+    }
+
+    // If the component is a container, recursively update its children's positions
+    if (isContainerComponent(component)) {
+      for (const child of component.children) {
+        this.updateComponent2DProjectedPositions(child, leftTopWidthHeight, mvpMatrix, sliceType, sliceFrac, projectedScreenObjects)
+      }
+    }
+  }
+
+  draw2DUI(leftTopWidthHeight: number[], axCorSag: SLICE_TYPE, sliceFrac: number, mvpMatrix: mat4) {
+    const componentsFor2D = this.uiComponents.filter(x => x.isRenderedIn2D)
+
+    // anchor our compoents
+    anchorComponents(leftTopWidthHeight, componentsFor2D)
+
+    // Main loop that iterates over the UI components and updates their positions
+    const projectedScreenObjects: ProjectedScreenObject[] = []
+    for (const component of this.uiComponents) {
+      this.updateComponent2DProjectedPositions(component, leftTopWidthHeight, mvpMatrix, axCorSag, sliceFrac, projectedScreenObjects)
+    }
+
+    // Draw projected UI components that are not occluded
+    const visibleScreenObjects = this.filterOccludedObjects(projectedScreenObjects)
+    for (const component of visibleScreenObjects) {
+      if (isAlignableComponent(component)) {
+        component.align(NVRenderDimensions.TWO, leftTopWidthHeight)
+      }
+      component.render(NVRenderDimensions.TWO)
+    }
+  }
+
   // not included in public docs
   // draw 2D tile
   draw2DMain(leftTopWidthHeight: number[], axCorSag: SLICE_TYPE, customMM = NaN): void {
@@ -8653,57 +8727,7 @@ export class Niivue {
       this.drawSliceOrientationText(leftTopWidthHeight, axCorSag)
     }
 
-    const projectedScreenObjects: ProjectedScreenObject[] = []
-
-    // anchor our compoents
-    anchorComponents(this.gl.canvas, this.uiComponents)
-
-    // updated ui components positions
-    for (const component of this.uiComponents) {
-      if (!component.isVisible || !isModelComponent(component)) {
-        continue
-      }
-
-      if (!component.isRenderedIn2D) {
-        continue
-      }
-
-      const fracPoint = this.mm2frac(component.getModelPosition())
-      const hideDepth = component.getHideDepth() / 2 // make this equivalent to clip space hide depth
-      if (hideDepth) {
-        switch (axCorSag) {
-          case SLICE_TYPE.SAGITTAL:
-            if (Math.abs(sliceFrac - fracPoint[0]) > hideDepth) {
-              component.isVisibleIn2D = false
-              continue
-            }
-            break
-          case SLICE_TYPE.CORONAL:
-            if (Math.abs(sliceFrac - fracPoint[1]) > hideDepth) {
-              component.isVisibleIn2D = false
-              continue
-            }
-            break
-          case SLICE_TYPE.AXIAL:
-            if (Math.abs(sliceFrac - fracPoint[2]) > hideDepth) {
-              component.isVisibleIn2D = false
-              continue
-            }
-            break
-        }
-      }
-      component.updateProjectedPosition(leftTopWidthHeight, obj.modelViewProjectionMatrix)
-      if (isProjectedScreenObject(component)) {
-        projectedScreenObjects.push(component)
-      }
-    }
-
-    // draw projected ui components that are not occluded
-    const visibleScreenObjects = this.filterOccludedObjects(projectedScreenObjects)
-    for (const component of visibleScreenObjects) {
-
-      component.render()
-    }
+    this.draw2DUI(leftTopWidthHeight, axCorSag, sliceFrac, obj.modelViewProjectionMatrix)
 
     this.readyForSync = true
   }
@@ -9845,6 +9869,50 @@ export class Niivue {
     this.framebufferManager.unbindFramebuffer()
   }
 
+  updateComponent3DProjectedPositions(
+    component: UIComponent,
+    leftTopWidthHeight: number[],
+    mvpMatrix: mat4,
+  ): void {
+
+    if (isModelComponent(component)) {
+      const hideDepth = component.getHideDepth() / 2 // make this equivalent to clip space hide depth
+
+      if (hideDepth) {
+        const modelPoint = component.getModelPosition()
+        if (this.isModelPointClippedByPlane(modelPoint, mvpMatrix)) {
+          component.isVisibleIn3D = false
+        }
+
+        const depth = this.getModelPointDepth(modelPoint as [number, number, number], mvpMatrix, leftTopWidthHeight)
+        if (depth > hideDepth) {
+          component.isVisibleIn3D = false
+        }
+      }
+      component.updateProjectedPosition(leftTopWidthHeight, mvpMatrix)
+    }
+    if (isContainerComponent(component)) {
+      for (const child of component.children) {
+        this.updateComponent3DProjectedPositions(child, leftTopWidthHeight, mvpMatrix)
+      }
+    }
+  }
+
+  draw3DUI(leftTopWidthHeight: number[]) {
+    const componentsFor3D = this.uiComponents.filter(x => x.isVisible && x.isRenderedIn3D)
+    // anchor our compoents
+    anchorComponents(leftTopWidthHeight, componentsFor3D)
+
+    for (const component of componentsFor3D) {
+      if (component.isRenderedIn3D) {
+        if (isAlignableComponent(component)) {
+          component.align(NVRenderDimensions.THREE, leftTopWidthHeight)
+        }
+        component.render(NVRenderDimensions.THREE)
+      }
+    }
+  }
+
   // not included in public docs
   draw3D(
     leftTopWidthHeight = [0, 0, 0, 0],
@@ -9890,27 +9958,9 @@ export class Niivue {
       leftTopWidthHeight[1] = gl.canvas.height - leftTopWidthHeight[3] - leftTopWidthHeight[1]
     }
     this.draw3DPick(leftTopWidthHeight, mvpMatrix, modelMatrix, normalMatrix, azimuth, elevation)
-    for (const component of this.uiComponents) {
-      if (!component.isVisible) {
-        continue
-      }
-
-      if (isModelComponent(component) && component.isRenderedIn3D) {
-        const hideDepth = component.getHideDepth() / 2 // make this equivalent to clip space hide depth
-        component.isVisibleIn3D = true
-        if (hideDepth) {
-          const modelPoint = component.getModelPosition()
-          if (this.isModelPointClippedByPlane(modelPoint, mvpMatrix)) {
-            component.isVisibleIn3D = false
-          }
-
-          const depth = this.getModelPointDepth(modelPoint as [number, number, number], mvpMatrix, leftTopWidthHeight)
-          if (depth > hideDepth) {
-            component.isVisibleIn3D = false
-          }
-        }
-        component.updateProjectedPosition(leftTopWidthHeight, mvpMatrix)
-      }
+    const componentsFor3D = this.uiComponents.filter(x => x.isRenderedIn3D && x.isVisible)
+    for (const component of componentsFor3D) {
+      this.updateComponent3DProjectedPositions(component, leftTopWidthHeight, mvpMatrix)
     }
 
     gl.enable(gl.DEPTH_TEST)
@@ -9961,18 +10011,7 @@ export class Niivue {
     this.sync()
     this.draw3DLabels(mvpMatrix, relativeLTWH, true)
 
-    for (const component of this.uiComponents) {
-      if (!component.isVisible) {
-        continue
-      }
-
-      if (isModelComponent(component)) {
-        if (!component.isRenderedIn3D || !component.isVisibleIn3D) {
-          continue
-        }
-      }
-      component.render()
-    }
+    this.draw3DUI(leftTopWidthHeight)
 
     return posString
   }

@@ -48,10 +48,12 @@ export interface UIComponent {
     setScreenPosition(point: vec2): void
     getScreenWidth(): number
     getScreenHeight(): number
-    getColor(): vec4
-    setColor(color: vec4): void
     isVisible: boolean
-    render(dimsions?: NVRenderDimensions): void
+    render(dimensions?: NVRenderDimensions): void
+
+    // Moved from UIModelComponent
+    isRenderedIn2D: boolean
+    isRenderedIn3D: boolean
 }
 
 export function isUIComponent(obj: any): obj is UIComponent {
@@ -62,10 +64,25 @@ export function isUIComponent(obj: any): obj is UIComponent {
         typeof obj.setScreenPosition === 'function' &&
         typeof obj.getScreenWidth === 'function' &&
         typeof obj.getScreenHeight === 'function' &&
-        typeof obj.getColor === 'function' &&
-        typeof obj.setColor === 'function' &&
         typeof obj.isVisible === 'boolean' &&
+        typeof obj.isRenderedIn2D === 'boolean' &&
+        typeof obj.isRenderedIn3D === 'boolean' &&
         typeof obj.render === 'function'
+    )
+}
+
+// New interface for components that support color operations
+export interface ColorableComponent {
+    getColor(): vec4
+    setColor(color: vec4): void
+}
+
+// Type guard for ColorableComponent
+export function isColorableComponent(obj: any): obj is ColorableComponent {
+    return (
+        obj &&
+        typeof obj.getColor === 'function' &&
+        typeof obj.setColor === 'function'
     )
 }
 
@@ -75,17 +92,15 @@ export interface UIComponentContainer {
 }
 
 export function isContainerComponent(obj: any): obj is UIComponentContainer {
-    return obj && Array.isArray(obj.children) && typeof obj.updateChildrenScreenPositions === 'function'
+    return obj && Array.isArray(obj.children)
 }
 
 export interface UIModelComponent {
-    getModelPosition(): vec3 // model position control is attached to
-    getHideDepth(): number // clip space depth to hide control
-    setProjectedPosition(point: vec2): void // update points attached to model
-    getProjectedPosition(): vec2 // projected position of the associated model point
+    getModelPosition(): vec3 // Model position control is attached to
+    getHideDepth(): number // Clip space depth to hide control
+    setProjectedPosition(point: vec2): void // Update points attached to model
+    getProjectedPosition(): vec2 // Projected position of the associated model point
     updateProjectedPosition(leftTopWidthHeight: number[], mvpMatrix: mat4)
-    isRenderedIn2D: boolean
-    isRenderedIn3D: boolean
     isVisibleIn2D: boolean
     isVisibleIn3D: boolean
 }
@@ -96,15 +111,15 @@ export function isModelComponent(obj: any): obj is UIModelComponent {
         typeof obj.getModelPosition === 'function' &&
         typeof obj.getHideDepth === 'function' &&
         typeof obj.updateProjectedPosition === 'function' &&
-        typeof obj.isRenderedIn2D === 'boolean' &&
-        typeof obj.isRenderedIn3D === 'boolean' &&
+        typeof obj.isVisibleIn2D === 'boolean' &&
+        typeof obj.isVisibleIn3D === 'boolean' &&
         typeof obj.setProjectedPosition === 'function' &&
         typeof obj.getProjectedPosition === 'function'
     )
 }
 
 export interface AlignableComponent {
-    align(): void
+    align(dimensions: NVRenderDimensions, leftTopWidthHeight: number[]): void
 }
 
 export function isAlignableComponent(obj: any): obj is AlignableComponent {
@@ -155,17 +170,11 @@ export function getProjectedPosition(position: vec3, leftTopWidthHeight: number[
     return projectedPoint
 }
 
-/**
- * Interface for components that can set top-left and bottom-right screen positions.
- */
 export interface AnchorBoundComponent extends UIComponent {
     setTopLeftScreenPosition(position: vec2): void
     setBottomRightScreenPosition(position: vec2): void
 }
 
-/**
- * Type guard to check if the component has methods for setting top-left and bottom-right screen positions.
- */
 export function isAnchorBoundComponent(obj: any): obj is AnchorBoundComponent {
     return (
         obj &&
@@ -174,24 +183,17 @@ export function isAnchorBoundComponent(obj: any): obj is AnchorBoundComponent {
     )
 }
 
-/**
- * Function to anchor components based on their anchor points and canvas dimensions.
- * @param canvas The HTMLCanvasElement or OffscreenCanvas for rendering.
- * @param components The list of UIComponent objects to be anchored.
- */
-export function anchorComponents(canvas: HTMLCanvasElement | OffscreenCanvas, components: UIComponent[]): void {
-    // Calculate the screen-relative positions of the canvas
-    const top = canvas instanceof HTMLCanvasElement ? canvas.offsetTop : 0
-    const left = canvas instanceof HTMLCanvasElement ? canvas.offsetLeft : 0
-    const right = left + canvas.width
-    const bottom = top + canvas.height
+export function anchorComponents(leftTopWidthHeight: number[], components: UIComponent[]): void {
+    const left = leftTopWidthHeight[0]
+    const top = leftTopWidthHeight[1]
+    const width = leftTopWidthHeight[2]
+    const height = leftTopWidthHeight[3]
+    const right = left + width
+    const bottom = top + height
 
-    // Iterate through each component and apply the correct screen positioning
     for (const component of components) {
         if (isAnchoredComponent(component) && isAnchorBoundComponent(component)) {
-            // Determine the top-left screen position based on the topLeftAnchor value
             let topLeftPosition: vec2 = vec2.create()
-
             switch (component.topLeftAnchor) {
                 case NVAnchorPoint.TOPLEFT:
                     topLeftPosition = vec2.fromValues(left, top)
@@ -224,13 +226,10 @@ export function anchorComponents(canvas: HTMLCanvasElement | OffscreenCanvas, co
                     break
             }
 
-            // If bottomRightAnchor is NONE, set only the screen position using setScreenPosition
             if (component.bottomRightAnchor === NVAnchorPoint.NONE) {
                 component.setScreenPosition(topLeftPosition)
             } else {
-                // If bottomRightAnchor is set, calculate the bottom-right position based on the anchor value
                 let bottomRightPosition: vec2 = vec2.create()
-
                 switch (component.bottomRightAnchor) {
                     case NVAnchorPoint.TOPLEFT:
                         bottomRightPosition = vec2.fromValues(left, top)
@@ -263,7 +262,6 @@ export function anchorComponents(canvas: HTMLCanvasElement | OffscreenCanvas, co
                         break
                 }
 
-                // Set both the top-left and bottom-right screen positions
                 component.setTopLeftScreenPosition(topLeftPosition)
                 component.setBottomRightScreenPosition(bottomRightPosition)
             }

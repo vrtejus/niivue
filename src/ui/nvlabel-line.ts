@@ -1,5 +1,5 @@
 import { mat4, vec2, vec3 } from 'gl-matrix'
-import { getProjectedPosition, UIModelComponent, ProjectedScreenObject } from './nvui-component.js'
+import { getProjectedPosition, UIModelComponent, ProjectedScreenObject, NVRenderDimensions } from './nvui-component.js'
 import { NVScreenText } from './nvtext.js'
 import { NVModelLine } from './nvline.js'
 import { NVFont } from './nvfont.js'
@@ -104,8 +104,20 @@ export class NVLabelLine extends NVScreenText implements UIModelComponent, Proje
         this.modelLine.setStart(lineStart)
     }
 
-    public render(): void {
+    public render(dimensions: NVRenderDimensions = NVRenderDimensions.NONE): void {
         if (!this.isVisible) return
+
+        switch (dimensions) {
+            case NVRenderDimensions.TWO:
+                if (!this.isVisibleIn2D) {
+                    return
+                }
+                break
+            case NVRenderDimensions.THREE:
+                if (!this.isVisibleIn3D) {
+                    return
+                }
+        }
 
         // Render the model line from the start point to the projected end point
         this.modelLine.render()

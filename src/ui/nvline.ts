@@ -1,9 +1,9 @@
 import { mat4, vec2, vec3, vec4 } from 'gl-matrix'
-import { UIModelComponent, UIComponent } from './nvui-component.js'
+import { UIModelComponent, UIComponent, ColorableComponent } from './nvui-component.js'
 import { Shader } from '../shader.js'
 import { vertLineShader, fragRectShader } from '../shader-srcs.js'
 
-export class NVScreenLine implements UIComponent {
+export class NVScreenLine implements UIComponent, ColorableComponent {
     private gl: WebGL2RenderingContext
     private start: vec2
     private end: vec2
@@ -15,8 +15,10 @@ export class NVScreenLine implements UIComponent {
     private unusedVAO = null
 
     public isVisible: boolean
+    public isRenderedIn2D: boolean = true // Default value set to true
+    public isRenderedIn3D: boolean = true // Default value set to true
 
-    constructor(gl: WebGL2RenderingContext, start: vec2, end: vec2, thickness: number = 1, lineColor: number[] | Float32Array = [1.0, 0.0, 0.0, 1.0],) {
+    constructor(gl: WebGL2RenderingContext, start: vec2, end: vec2, thickness: number = 1, lineColor: number[] | Float32Array = [1.0, 0.0, 0.0, 1.0]) {
         this.gl = gl
         this.lineShader = new Shader(gl, vertLineShader, fragRectShader)
 
@@ -28,18 +30,10 @@ export class NVScreenLine implements UIComponent {
         this.isVisible = true
 
         const rectStrip = [
-            1,
-            1,
-            0, // RAI
-            1,
-            0,
-            0, // RPI
-            0,
-            1,
-            0, // LAI
-            0,
-            0,
-            0 // LPI
+            1, 1, 0, // RAI
+            1, 0, 0, // RPI
+            0, 1, 0, // LAI
+            0, 0, 0 // LPI
         ]
 
         this.cuboidVertexBuffer = gl.createBuffer()!
@@ -47,17 +41,16 @@ export class NVScreenLine implements UIComponent {
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(rectStrip), gl.STATIC_DRAW)
         this.genericVAO = gl.createVertexArray()! // 2D slices, fonts, lines
         gl.bindVertexArray(this.genericVAO)
-        // gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.cuboidVertexBuffer); //triangle strip does not need indices
         gl.bindBuffer(gl.ARRAY_BUFFER, this.cuboidVertexBuffer)
         gl.enableVertexAttribArray(0)
         gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0)
         gl.bindVertexArray(this.unusedVAO) // switch off to avoid tampering with settings
-
-
     }
+
     getColor(): vec4 {
         return vec4.fromValues(...this.lineColor as [number, number, number, number])
     }
+
     setColor(color: vec4): void {
         this.lineColor = Array.from(color)
     }
@@ -103,7 +96,7 @@ export class NVScreenLine implements UIComponent {
 
         this.gl.uniform4fv(this.lineShader.uniforms.lineColor, this.lineColor)
         this.gl.uniform2fv(this.lineShader.uniforms.canvasWidthHeight, [this.gl.canvas.width, this.gl.canvas.height])
-        // draw Line
+        // Draw line
         this.gl.uniform1f(this.lineShader.uniforms.thickness, this.thickness)
         this.gl.uniform4fv(this.lineShader.uniforms.startXYendXY, [this.start[0], this.start[1], this.end[0], this.end[1]])
         this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4)
@@ -113,22 +106,24 @@ export class NVScreenLine implements UIComponent {
 
 export class NVModelLine extends NVScreenLine implements UIModelComponent, UIComponent {
     private modelPosition: vec3 // 3D position in model space
-    private hideDepth: number // clip space depth to hide control
+    private hideDepth: number // Clip space depth to hide control
+
+    public isVisibleIn2D: boolean = true // Default value set to true
+    public isVisibleIn3D: boolean = true // Default value set to true
+
     constructor(gl: WebGL2RenderingContext, start: vec2, modelPosition: vec3 | number[], thickness: number = 1, lineColor: number[] | Float32Array = [1.0, 0.0, 0.0, 1.0], hideDepth = 0) {
         super(gl, start, vec2.create(), thickness, lineColor)
         this.modelPosition = vec3.fromValues(modelPosition[0], modelPosition[1], modelPosition[2])
         this.hideDepth = hideDepth
     }
+
     getProjectedPosition(): vec2 {
         return this.getEnd()
     }
-    updateProjectedPosition(leftTopWidthHeight: number[], mvpMatrix: mat4) {
+
+    updateProjectedPosition(leftTopWidthHeight: number[], mvpMatrix: mat4): void {
         throw new Error('Method not implemented.')
     }
-    isRenderedIn2D: boolean
-    isRenderedIn3D: boolean
-    isVisibleIn2D: boolean
-    isVisibleIn3D: boolean
 
     // Return the model position
     public getModelPosition(): vec3 {

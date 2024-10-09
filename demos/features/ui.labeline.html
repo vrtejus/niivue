@@ -38,11 +38,12 @@
         let st = parseInt(document.getElementById("sliceType").value);
         nv1.setSliceType(st);
     }
+
     function handleIntensityChange(data) {
-        document.getElementById("intensity").innerHTML =
-            "&nbsp;&nbsp;" + data.string;
-        console.log(data);
+        // document.getElementById("intensity").innerHTML = "&nbsp;&nbsp;" + data.string;
+        // console.log(data);
     }
+
     var volumeList1 = [
         {
             url: "../images/mni152.nii.gz",
@@ -57,21 +58,80 @@
             opacity: 1
         }
     ];
+
     var nv1 = new niivue.Niivue({
         dragAndDropEnabled: true,
         onLocationChange: handleIntensityChange,
     });
+
     nv1.attachTo("gl1");
     await nv1.loadVolumes(volumeList1);
-    nv1.setSliceType(nv1.sliceTypeRender);
-    // Create an NVArcContainer instance
-    const nvArcContainer = new NVArcContainer(niivue.NVAnchorPoint.TOPLEFT, niivue.NVAnchorPoint.BOTTOMRIGHT)
 
-    //
-    let text3D = new niivue.NVLabelLine(nv1.gl, 'hippocampus', nv1.defaultFont, [800, 600], [-25.0, -15.0, -25.0], [1.0, 0.0, 0.0, 1.0], 1.0, 10.0, 0.1)
-    nvArcContainer.children.push(text3D)
-    text3D = new niivue.NVLabelLine(nv1.gl, 'center', nv1.defaultFont, [800, 800], [0.0, 0.0, 0.0], [0, 0.0, 1.0, 1.0], 1.0, 10.0, 0.1)
-    nvArcContainer.children.push(text3D)
-    nv1.uiComponents.push(nvArcContainer)
-    nv1.drawScene()
+    // Create an NVArcContainer instance
+    const nvArcContainer = new niivue.NVArcContainer(niivue.NVAnchorPoint.TOPLEFT, niivue.NVAnchorPoint.BOTTOMRIGHT);
+
+    // Define a list of labels with their corresponding 3D model positions
+    const labels3D = [
+        // { text: 'center', position: [0.0, 0.0, 0.0] },
+        // { text: 'Precentral Gyrus', position: [-42.0, -16.0, 54.0] },
+        // { text: 'Postcentral Gyrus', position: [38.0, -34.0, 50.0] },
+        // { text: 'Superior Temporal Gyrus', position: [60.0, -24.0, 6.0] },
+        // { text: 'Middle Temporal Gyrus', position: [-54.0, -44.0, 0.0] },
+        // { text: 'Inferior Parietal Lobule', position: [-56.0, -36.0, 40.0] },
+        // { text: 'Precuneus', position: [4.0, -64.0, 36.0] },
+        // { text: 'Cingulate Gyrus', position: [0.0, -12.0, 38.0] },
+        // { text: 'Hippocampus', position: [-28.0, -20.0, -12.0] },
+        // { text: 'Amygdala', position: [-20.0, -2.0, -18.0] },
+        { text: 'Caudate Nucleus', position: [10.0, 16.0, 4.0] },
+        { text: 'Thalamus', position: [-12.0, -14.0, 10.0] },
+        { text: 'Putamen', position: [28.0, 4.0, -2.0] },
+        { text: 'Pallidum', position: [-16.0, -4.0, -4.0] },
+        { text: 'Insula', position: [38.0, -2.0, 8.0] },
+        { text: 'Fusiform Gyrus', position: [-36.0, -50.0, -20.0] },
+        { text: 'Anterior Cingulate Cortex', position: [2.0, 30.0, 22.0] },
+        { text: 'Superior Frontal Gyrus', position: [-14.0, 46.0, 32.0] },
+        { text: 'Lingual Gyrus', position: [4.0, -70.0, 4.0] },
+        { text: 'Supramarginal Gyrus', position: [56.0, -42.0, 36.0] },
+        { text: 'Superior Parietal Lobule', position: [-20.0, -60.0, 56.0] }
+    ];
+
+    // Define a set of distinct colors for the labels
+    const colors = [
+        [1.0, 0.0, 0.0, 1.0], // Red
+        [0.0, 1.0, 0.0, 1.0], // Green
+        [0.0, 0.0, 1.0, 1.0], // Blue
+        [1.0, 1.0, 0.0, 1.0], // Yellow
+        [1.0, 0.0, 1.0, 1.0], // Magenta
+        [0.0, 1.0, 1.0, 1.0], // Cyan
+        [0.5, 0.5, 0.5, 1.0], // Gray
+        [1.0, 0.5, 0.0, 1.0], // Orange
+        [0.5, 0.0, 1.0, 1.0], // Purple
+        [0.0, 1.0, 0.5, 1.0], // Light Green
+    ]
+
+    // Add each label with line to the container
+    for (let i = 0; i < labels3D.length; i++) {
+        const label = labels3D[i]
+
+        // Assign a color from the set, cycling through if necessary
+        const color = colors[i % colors.length]
+
+        let labelLine = new niivue.NVLabelLine(
+            nv1.gl, // WebGL context
+            label.text, // Text for the label
+            nv1.defaultFont, // Font used for the label
+            [800, 600], // Initial 2D screen position (for alignment purposes)
+            label.position, // 3D position of the label
+            color, // Color of the line and text
+            1.0, // Scale of the label
+            10.0, // Thickness of the line
+            0.1 // Hide depth
+        )
+        nvArcContainer.children.push(labelLine)
+    }
+    // Add the NVArcContainer to the uiComponents
+    nv1.uiComponents.push(nvArcContainer);
+
+    // Render the scene
+    nv1.drawScene();
 </script>
