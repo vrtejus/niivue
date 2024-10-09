@@ -111,7 +111,7 @@ export class NVArcContainer implements AlignableComponent, AnchoredComponent, UI
         if (visibleChildren.length === 0) return
 
         const angleStep = (2 * Math.PI) / visibleChildren.length
-        let angle = Math.PI / 4
+        let angle = Math.PI * .75
 
         // Array to store components with their precomputed projected positions
         const projectedPositions: { component: UIComponent, projectedPos: vec2, width: number, height: number }[] = []

@@ -1,5 +1,5 @@
 import { mat4, vec2, vec3, vec4 } from 'gl-matrix'
-import { UIModelComponent, UIComponent, ColorableComponent } from './nvui-component.js'
+import { UIModelComponent, UIComponent, ColorableComponent, NVRenderDimensions } from './nvui-component.js'
 import { Shader } from '../shader.js'
 import { vertLineShader, fragRectShader } from '../shader-srcs.js'
 
@@ -60,7 +60,9 @@ export class NVScreenLine implements UIComponent, ColorableComponent {
     }
 
     setStart(point: vec2 | number[]): void {
+
         this.start = vec2.fromValues(point[0], point[1])
+        // console.log('starting point', this.start)
     }
 
     getEnd(): vec2 {
@@ -87,7 +89,19 @@ export class NVScreenLine implements UIComponent, ColorableComponent {
         return Math.abs(this.start[1] - this.end[1])
     }
 
-    render(): void {
+    render(dimensions: NVRenderDimensions): void {
+        switch (dimensions) {
+            case NVRenderDimensions.TWO:
+                if (!this.isRenderedIn2D) {
+                    return
+                }
+                break
+            case NVRenderDimensions.THREE:
+                if (!this.isRenderedIn3D) {
+                    return
+                }
+        }
+        // console.log('drawing a line from to', this.start, this.end)
         this.gl.bindVertexArray(this.genericVAO)
         if (!this.lineShader) {
             throw new Error('lineShader undefined')

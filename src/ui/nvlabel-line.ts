@@ -49,6 +49,8 @@ export class NVLabelLine extends NVScreenText implements UIModelComponent, Proje
     public setProjectedPosition(position: vec2): void {
         // Update the end point of the model line only
         this.modelLine.setEnd(position)
+        // Update the line start point based on the new projected position
+        this.updateLineStartPoint()
     }
 
     // Update the projected position using the given transformation matrix and screen dimensions
@@ -120,7 +122,7 @@ export class NVLabelLine extends NVScreenText implements UIModelComponent, Proje
         }
 
         // Render the model line from the start point to the projected end point
-        this.modelLine.render()
+        this.modelLine.render(dimensions)
 
         // Render the label text at its screen position
         super.render()

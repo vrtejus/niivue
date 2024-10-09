@@ -8460,15 +8460,18 @@ export class Niivue {
   updateComponent2DProjectedPositions(
     component: UIComponent,
     leftTopWidthHeight: number[],
-    mvpMatrix: mat4,
     sliceType: SLICE_TYPE,
     sliceFrac: number,
     projectedScreenObjects: ProjectedScreenObject[]
   ): void {
     if (isModelComponent(component)) {
       const fracPoint = this.mm2frac(component.getModelPosition())
+      // console.log('frac point', fracPoint)
+      // console.log('bounding box and slice', leftTopWidthHeight, sliceType)
       const hideDepth = component.getHideDepth() / 2 // make this equivalent to clip space hide depth
       component.isVisibleIn2D = true
+      let xDimension: number
+      let yDimension: number
 
       if (hideDepth) {
         switch (sliceType) {
@@ -8476,22 +8479,37 @@ export class Niivue {
             if (Math.abs(sliceFrac - fracPoint[0]) > hideDepth) {
               component.isVisibleIn2D = false
             }
+            xDimension = 1
+            yDimension = 2
             break
           case SLICE_TYPE.CORONAL:
             if (Math.abs(sliceFrac - fracPoint[1]) > hideDepth) {
               component.isVisibleIn2D = false
             }
+            xDimension = 0
+            yDimension = 2
             break
           case SLICE_TYPE.AXIAL:
             if (Math.abs(sliceFrac - fracPoint[2]) > hideDepth) {
               component.isVisibleIn2D = false
             }
+            xDimension = 0
+            yDimension = 1
             break
         }
       }
-
+      // const fracY = (gl.canvas.height - this.mousePos[1] - leftTopWidthHeight[1]) / leftTopWidthHeight[3]
       // Update the projected position for this component
-      component.updateProjectedPosition(leftTopWidthHeight, mvpMatrix)
+      // component.updateProjectedPosition(leftTopWidthHeight, mvpMatrix)
+      // console.log('dpr', this.uiData.dpr)
+      // 
+      // const x = leftTopWidthHeight[0] + fracPoint[xDimension] / this.uiData.dpr * leftTopWidthHeight[2]
+      // const y = leftTopWidthHeight[1] + leftTopWidthHeight[3] - fracPoint[yDimension] / this.uiData.dpr * leftTopWidthHeight[3]
+      const x = leftTopWidthHeight[0] + fracPoint[xDimension] * leftTopWidthHeight[2]
+      const y = leftTopWidthHeight[1] + leftTopWidthHeight[3] - fracPoint[yDimension] * leftTopWidthHeight[3]
+      const projectedPosition = vec2.fromValues(x, y)
+      // console.log('projected position', projectedPosition)
+      component.setProjectedPosition(projectedPosition)
 
       // If the component is a ProjectedScreenObject, add it to the list
       if (isProjectedScreenObject(component)) {
@@ -8502,7 +8520,7 @@ export class Niivue {
     // If the component is a container, recursively update its children's positions
     if (isContainerComponent(component)) {
       for (const child of component.children) {
-        this.updateComponent2DProjectedPositions(child, leftTopWidthHeight, mvpMatrix, sliceType, sliceFrac, projectedScreenObjects)
+        this.updateComponent2DProjectedPositions(child, leftTopWidthHeight, sliceType, sliceFrac, projectedScreenObjects)
       }
     }
   }
@@ -8516,7 +8534,7 @@ export class Niivue {
     // Main loop that iterates over the UI components and updates their positions
     const projectedScreenObjects: ProjectedScreenObject[] = []
     for (const component of this.uiComponents) {
-      this.updateComponent2DProjectedPositions(component, leftTopWidthHeight, mvpMatrix, axCorSag, sliceFrac, projectedScreenObjects)
+      this.updateComponent2DProjectedPositions(component, leftTopWidthHeight, axCorSag, sliceFrac, projectedScreenObjects)
     }
 
     // Draw projected UI components that are not occluded
@@ -9877,7 +9895,7 @@ export class Niivue {
 
     if (isModelComponent(component)) {
       const hideDepth = component.getHideDepth() / 2 // make this equivalent to clip space hide depth
-
+      component.isVisibleIn3D = true
       if (hideDepth) {
         const modelPoint = component.getModelPosition()
         if (this.isModelPointClippedByPlane(modelPoint, mvpMatrix)) {

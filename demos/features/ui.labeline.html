@@ -25,7 +25,7 @@
     <main id="container">
         <canvas id="gl1"></canvas>
     </main>
-    <footer id="intensity">&nbsp;</footer>
+    <footer id="location">&nbsp;</footer>
 </body>
 
 </html>
@@ -39,9 +39,14 @@
         nv1.setSliceType(st);
     }
 
+    function handleLocationChange(data) {
+        document.getElementById("location").innerHTML =
+            "&nbsp;&nbsp;" + data.string;
+    }
+
     function handleIntensityChange(data) {
         // document.getElementById("intensity").innerHTML = "&nbsp;&nbsp;" + data.string;
-        // console.log(data);
+        console.log(data);
     }
 
     var volumeList1 = [
@@ -61,7 +66,7 @@
 
     var nv1 = new niivue.Niivue({
         dragAndDropEnabled: true,
-        onLocationChange: handleIntensityChange,
+        onLocationChange: handleLocationChange,
     });
 
     nv1.attachTo("gl1");
@@ -72,27 +77,29 @@
 
     // Define a list of labels with their corresponding 3D model positions
     const labels3D = [
-        // { text: 'center', position: [0.0, 0.0, 0.0] },
-        // { text: 'Precentral Gyrus', position: [-42.0, -16.0, 54.0] },
-        // { text: 'Postcentral Gyrus', position: [38.0, -34.0, 50.0] },
-        // { text: 'Superior Temporal Gyrus', position: [60.0, -24.0, 6.0] },
-        // { text: 'Middle Temporal Gyrus', position: [-54.0, -44.0, 0.0] },
-        // { text: 'Inferior Parietal Lobule', position: [-56.0, -36.0, 40.0] },
-        // { text: 'Precuneus', position: [4.0, -64.0, 36.0] },
-        // { text: 'Cingulate Gyrus', position: [0.0, -12.0, 38.0] },
-        // { text: 'Hippocampus', position: [-28.0, -20.0, -12.0] },
+        { text: 'Anterior Commissure', position: [0.0, 0.0, 0.0] },
+        { text: 'Precentral Gyrus', position: [-42.0, -16.0, 54.0] },
+        { text: 'Postcentral Gyrus', position: [38.0, -34.0, 50.0] },
+        { text: 'Superior Temporal Gyrus', position: [60.0, -24.0, 6.0] },
+        { text: 'Middle Temporal Gyrus', position: [-54.0, -44.0, 0.0] },
+        { text: 'Inferior Parietal Lobule', position: [-56.0, -36.0, 40.0] },
+        { text: 'Precuneus', position: [4.0, -64.0, 36.0] },
+        { text: 'Cingulate Gyrus', position: [0.0, -12.0, 38.0] },
+        { text: 'Hippocampus', position: [-28.0, -20.0, -12.0] },
         // { text: 'Amygdala', position: [-20.0, -2.0, -18.0] },
-        { text: 'Caudate Nucleus', position: [10.0, 16.0, 4.0] },
-        { text: 'Thalamus', position: [-12.0, -14.0, 10.0] },
+        // { text: 'Caudate Nucleus', position: [10.0, 16.0, 4.0] },
+        // { text: 'Thalamus', position: [-12.0, -14.0, 10.0] },
         { text: 'Putamen', position: [28.0, 4.0, -2.0] },
-        { text: 'Pallidum', position: [-16.0, -4.0, -4.0] },
-        { text: 'Insula', position: [38.0, -2.0, 8.0] },
-        { text: 'Fusiform Gyrus', position: [-36.0, -50.0, -20.0] },
-        { text: 'Anterior Cingulate Cortex', position: [2.0, 30.0, 22.0] },
-        { text: 'Superior Frontal Gyrus', position: [-14.0, 46.0, 32.0] },
-        { text: 'Lingual Gyrus', position: [4.0, -70.0, 4.0] },
-        { text: 'Supramarginal Gyrus', position: [56.0, -42.0, 36.0] },
-        { text: 'Superior Parietal Lobule', position: [-20.0, -60.0, 56.0] }
+        // { text: 'Pallidum', position: [-16.0, -4.0, -4.0] },
+        // { text: 'Insula', position: [38.0, -2.0, 8.0] },
+        // { text: 'Fusiform Gyrus', position: [-36.0, -50.0, -20.0] },
+        // { text: 'Anterior Cingulate Cortex', position: [2.0, 30.0, 22.0] },
+        // { text: 'Superior Frontal Gyrus', position: [-14.0, 46.0, 32.0] },
+        // { text: 'Lingual Gyrus', position: [4.0, -70.0, 4.0] },
+        // { text: 'Supramarginal Gyrus', position: [56.0, -42.0, 36.0] },
+        // { text: 'Superior Parietal Lobule', position: [-20.0, -60.0, 56.0] }
+        // { text: 'Cuneus', position: [0.0, -80.0, 24.0] }
+        { text: 'Fornix', position: [0, -40, 0] }
     ];
 
     // Define a set of distinct colors for the labels
