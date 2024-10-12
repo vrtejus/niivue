@@ -29,7 +29,7 @@
 </body>
 
 </html>
-<!-- <script type="module" async></script> -->
+
 <script type="module" async>
     import * as niivue from "../dist/index.js";
 
@@ -42,11 +42,6 @@
     function handleLocationChange(data) {
         document.getElementById("location").innerHTML =
             "&nbsp;&nbsp;" + data.string;
-    }
-
-    function handleIntensityChange(data) {
-        // document.getElementById("intensity").innerHTML = "&nbsp;&nbsp;" + data.string;
-        console.log(data);
     }
 
     var volumeList1 = [
@@ -86,19 +81,7 @@
         { text: 'Precuneus', position: [4.0, -64.0, 36.0] },
         { text: 'Cingulate Gyrus', position: [0.0, -12.0, 38.0] },
         { text: 'Hippocampus', position: [-28.0, -20.0, -12.0] },
-        // { text: 'Amygdala', position: [-20.0, -2.0, -18.0] },
-        // { text: 'Caudate Nucleus', position: [10.0, 16.0, 4.0] },
-        // { text: 'Thalamus', position: [-12.0, -14.0, 10.0] },
         { text: 'Putamen', position: [28.0, 4.0, -2.0] },
-        // { text: 'Pallidum', position: [-16.0, -4.0, -4.0] },
-        // { text: 'Insula', position: [38.0, -2.0, 8.0] },
-        // { text: 'Fusiform Gyrus', position: [-36.0, -50.0, -20.0] },
-        // { text: 'Anterior Cingulate Cortex', position: [2.0, 30.0, 22.0] },
-        // { text: 'Superior Frontal Gyrus', position: [-14.0, 46.0, 32.0] },
-        // { text: 'Lingual Gyrus', position: [4.0, -70.0, 4.0] },
-        // { text: 'Supramarginal Gyrus', position: [56.0, -42.0, 36.0] },
-        // { text: 'Superior Parietal Lobule', position: [-20.0, -60.0, 56.0] }
-        // { text: 'Cuneus', position: [0.0, -80.0, 24.0] }
         { text: 'Fornix', position: [0, -40, 0] }
     ];
 
@@ -114,14 +97,14 @@
         [1.0, 0.5, 0.0, 1.0], // Orange
         [0.5, 0.0, 1.0, 1.0], // Purple
         [0.0, 1.0, 0.5, 1.0], // Light Green
-    ]
+    ];
 
     // Add each label with line to the container
     for (let i = 0; i < labels3D.length; i++) {
-        const label = labels3D[i]
+        const label = labels3D[i];
 
         // Assign a color from the set, cycling through if necessary
-        const color = colors[i % colors.length]
+        const color = colors[i % colors.length];
 
         let labelLine = new niivue.NVLabelLine(
             nv1.gl, // WebGL context
@@ -132,9 +115,13 @@
             color, // Color of the line and text
             1.0, // Scale of the label
             10.0, // Thickness of the line
-            0.1 // Hide depth
-        )
-        nvArcContainer.children.push(labelLine)
+            0.1, // Hide depth
+            [0, 0.0, 0, 0.3], // Background color (semi-transparent black)
+            5, // Margin
+            true, // isRenderedIn2D
+            true // isRenderedIn3D
+        );
+        nvArcContainer.children.push(labelLine);
     }
     // Add the NVArcContainer to the uiComponents
     nv1.uiComponents.push(nvArcContainer);

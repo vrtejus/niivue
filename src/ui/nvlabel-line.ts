@@ -1,20 +1,19 @@
-import { mat4, vec2, vec3 } from 'gl-matrix'
-import { getProjectedPosition, UIModelComponent, ProjectedScreenObject, NVRenderDimensions } from './nvui-component.js'
-import { NVScreenText } from './nvtext.js'
-import { NVModelLine } from './nvline.js'
+import { NVDrawer } from './nvdrawer.js'
 import { NVFont } from './nvfont.js'
+import { vec2, vec3, vec4, mat4 } from 'gl-matrix'
+import { UIModelComponent, ProjectedScreenObject, NVRenderDimensions } from './nvui-component.js'
 
-export class NVLabelLine extends NVScreenText implements UIModelComponent, ProjectedScreenObject {
-    private modelPosition: vec3 // 3D position in model space
-    private hideDepth: number // clip space depth to hide control
-    private modelLine: NVModelLine
-
-    // Properties required for the ProjectedScreenObject interface
-    public screenDepth: number = -1.0
-    public isVisibleIn2D: boolean = true
-    public isVisibleIn3D: boolean = true
-    public isRenderedIn2D: boolean = true
-    public isRenderedIn3D: boolean = true
+export class NVLabelLine implements UIModelComponent, ProjectedScreenObject {
+    public isVisible: boolean = true // Visibility flag for ProjectedScreenObject
+    private modelPosition: vec3
+    private screenPosition: vec2 // 2D screen position where the text will be rendered
+    private projectedPosition: vec2 // 2D projected position where the line will be drawn to
+    private drawer: NVDrawer // NVDrawer instance for rendering
+    public text: string // The label text
+    public isVisibleIn2D: boolean = false
+    public isVisibleIn3D: boolean = false
+    public font: NVFont
+    public screenDepth: number = -1 // Depth value for occlusion
 
     constructor(
         gl: WebGL2RenderingContext,
@@ -22,109 +21,121 @@ export class NVLabelLine extends NVScreenText implements UIModelComponent, Proje
         font: NVFont,
         screenPosition: vec2,
         modelPosition: vec3 | number[],
-        color: number[] = [1.0, 0.0, 0.0, 1.0],
-        scale?: number,
-        thickness?: number,
-        hideDepth?: number
+        private color: number[] = [1.0, 0.0, 0.0, 1.0], // Default color (red)
+        public scale: number = 1.0,
+        public thickness: number = 1.0,
+        public hideDepth: number = 0.1,
+        private backgroundColor: number[] = [0, 0, 0, 0.2], // Default background color (semi-transparent black)
+        private margin: number = 5, // Default margin for text positioning
+        public isRenderedIn2D: boolean = true, // Render flag for 2D
+        public isRenderedIn3D: boolean = true // Render flag for 3D
     ) {
-        super(text, screenPosition, font, color, scale)
-        this.hideDepth = hideDepth ?? -1.0
+        this.drawer = new NVDrawer(gl)
+        this.text = text
+        this.font = font
+        this.screenPosition = vec2.clone(screenPosition)
+        this.projectedPosition = vec2.clone(screenPosition) // Initially set projected position to screen position
         this.modelPosition = vec3.fromValues(modelPosition[0], modelPosition[1], modelPosition[2])
-        this.modelLine = new NVModelLine(gl, screenPosition, this.modelPosition, thickness, color, hideDepth)
     }
 
-    // Return the model position
-    public getModelPosition(): vec3 {
+    // Getters and setters for positions and scaling
+    getScreenPosition(): vec2 {
+        return this.screenPosition
+    }
+
+    setScreenPosition(position: vec2): void {
+        vec2.copy(this.screenPosition, position)
+    }
+
+    getModelPosition(): vec3 {
         return this.modelPosition
     }
 
-    public getHideDepth(): number {
+    getProjectedPosition(): vec2 {
+        return this.projectedPosition
+    }
+
+    setProjectedPosition(position: vec2): void {
+        vec2.copy(this.projectedPosition, position)
+    }
+
+    getHideDepth(): number {
         return this.hideDepth
     }
 
-    public getProjectedPosition(): vec2 {
-        return this.modelLine.getEnd()
+    // Getters for the width and height of the label and its enclosing rectangle
+    getScreenWidth(): number {
+        return this.font.getTextWidth(this.scale, this.text) + 2 * this.margin
     }
 
-    public setProjectedPosition(position: vec2): void {
-        // Update the end point of the model line only
-        this.modelLine.setEnd(position)
-        // Update the line start point based on the new projected position
-        this.updateLineStartPoint()
+    getScreenHeight(): number {
+        return this.font.getTextHeight(this.scale, this.text) * 1.5 + 2 * this.margin
     }
 
-    // Update the projected position using the given transformation matrix and screen dimensions
-    public updateProjectedPosition(leftTopWidthHeight: number[], mvpMatrix: mat4): void {
-        const projectedPoint = getProjectedPosition(this.modelPosition, leftTopWidthHeight, mvpMatrix)
-        this.setProjectedPosition(vec2.fromValues(projectedPoint[0], projectedPoint[1]))
+    updateProjectedPosition(leftTopWidthHeight: number[], mvpMatrix: mat4): void {
+        // Calculate the new screen position using the mvpMatrix
+        const newScreenPosition = vec2.create()
+        const projected = vec4.create()
+        vec4.transformMat4(projected, vec4.fromValues(this.modelPosition[0], this.modelPosition[1], this.modelPosition[2], 1.0), mvpMatrix)
 
-        // Set the screen depth based on the projected Z value
-        this.screenDepth = projectedPoint[2]
-
-        // Update the line start point based on the new projected position
-        this.updateLineStartPoint()
-    }
-
-    public setScreenPosition(position: vec2): void {
-        // Update the screen position of the label and adjust the line start point based on the label's bounding box
-        super.setScreenPosition(position)
-        this.updateLineStartPoint()
-    }
-
-    private updateLineStartPoint(): void {
-        const textPosition = this.getScreenPosition()
-        const labelWidth = this.getScreenWidth()
-        const labelHeight = this.getScreenHeight()
-        const lineEnd = this.modelLine.getEnd()
-
-        const lineStart = vec2.clone(textPosition)
-
-        // Determine where the line should start based on the relationship of lineEnd to the label
-        if (lineEnd[1] > textPosition[1] + labelHeight) {
-            // End point is below the label, start from bottom middle of label
-            lineStart[1] = textPosition[1] + labelHeight
-        } else if (lineEnd[1] < textPosition[1]) {
-            // End point is above the label, start from top middle of label
-            lineStart[1] = textPosition[1]
-        } else {
-            // End point is in line with the label vertically, start from middle height of label
-            lineStart[1] = textPosition[1] + labelHeight / 2
+        if (projected[3] !== 0) {
+            newScreenPosition[0] = (projected[0] / projected[3] + 1) * 0.5 * leftTopWidthHeight[2] + leftTopWidthHeight[0]
+            newScreenPosition[1] = (1 - projected[1] / projected[3]) * 0.5 * leftTopWidthHeight[3] + leftTopWidthHeight[1]
+            this.screenDepth = projected[2] / projected[3]
         }
 
-        if (lineEnd[0] > textPosition[0] + labelWidth) {
-            // End point is to the right of the label, start from right edge of label
-            lineStart[0] = textPosition[0] + labelWidth
-        } else if (lineEnd[0] < textPosition[0]) {
-            // End point is to the left of the label, start from left edge of label
-            lineStart[0] = textPosition[0]
-        } else {
-            // End point is in line with the label horizontally, start from middle width of label
-            lineStart[0] = textPosition[0] + labelWidth / 2
-        }
-
-        // Set the updated start position to the model line
-        this.modelLine.setStart(lineStart)
+        this.setProjectedPosition(newScreenPosition)
     }
 
-    public render(dimensions: NVRenderDimensions = NVRenderDimensions.NONE): void {
-        if (!this.isVisible) return
-
-        switch (dimensions) {
-            case NVRenderDimensions.TWO:
-                if (!this.isVisibleIn2D) {
-                    return
-                }
-                break
-            case NVRenderDimensions.THREE:
-                if (!this.isVisibleIn3D) {
-                    return
-                }
+    // Render the label and the line using NVDrawer
+    render(dimensions: NVRenderDimensions = NVRenderDimensions.NONE): void {
+        // Check if the label should be rendered based on visibility
+        if (!this.isVisibleIn2D && dimensions === NVRenderDimensions.TWO) return
+        if (!this.isVisibleIn3D && dimensions === NVRenderDimensions.THREE) return
+        const endPoint = this.projectedPosition
+        const startPoint = vec2.clone(this.screenPosition)
+        const rectWidth = Math.max(this.getScreenWidth(), this.font.getTextWidth(this.scale, this.text) + 2 * this.margin) // Ensure the rect is large enough
+        const rectHeight = Math.max(this.getScreenHeight(), this.font.getTextHeight(this.scale, this.text) * 1.5 + 2 * this.margin)
+        const rectPoints = [
+            vec2.fromValues(this.screenPosition[0], this.screenPosition[1]), // Top-left
+            vec2.fromValues(this.screenPosition[0] + rectWidth, this.screenPosition[1]), // Top-right
+            vec2.fromValues(this.screenPosition[0], this.screenPosition[1] + rectHeight), // Bottom-left
+            vec2.fromValues(this.screenPosition[0] + rectWidth, this.screenPosition[1] + rectHeight) // Bottom-right
+        ]
+        let edgeMidPoints = [
+            vec2.fromValues(this.screenPosition[0] + rectWidth / 2, this.screenPosition[1]), // Top edge midpoint
+            vec2.fromValues(this.screenPosition[0] + rectWidth / 2, this.screenPosition[1] + rectHeight), // Bottom edge midpoint
+            vec2.fromValues(this.screenPosition[0], this.screenPosition[1] + rectHeight / 2), // Left edge midpoint
+            vec2.fromValues(this.screenPosition[0] + rectWidth, this.screenPosition[1] + rectHeight / 2) // Right edge midpoint
+        ]
+        let lineStartPoint = edgeMidPoints[0]
+        let minDistance = vec2.distance(lineStartPoint, this.projectedPosition)
+        for (let i = 1; i < edgeMidPoints.length; i++) {
+            const distance = vec2.distance(edgeMidPoints[i], this.projectedPosition)
+            if (distance < minDistance) {
+                minDistance = distance
+                lineStartPoint = edgeMidPoints[i]
+            }
         }
 
-        // Render the model line from the start point to the projected end point
-        this.modelLine.render(dimensions)
+        // Draw the connecting line
+        this.drawer.drawLine(
+            [lineStartPoint[0], lineStartPoint[1], endPoint[0], endPoint[1]],
+            this.thickness, // Line thickness
+            this.color as [number, number, number, number]
+        )
 
-        // Render the label text at its screen position
-        super.render()
+        // Render the background rect at the start point
+
+        this.drawer.drawRect(
+            [startPoint[0], startPoint[1], rectWidth, rectHeight],
+            this.backgroundColor as [number, number, number, number]
+        )
+
+        // Adjust the position of the text with a margin
+        const textPosition = [startPoint[0] + this.margin, startPoint[1] + this.margin]
+
+        // Render the text
+        this.font.drawText(textPosition, this.text, this.scale, this.color)
     }
 }

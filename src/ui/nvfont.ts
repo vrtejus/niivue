@@ -140,14 +140,6 @@ export class NVFont {
         this.isFontLoaded = true
     }
 
-    private calculateBounds(glyph: any, scaleW: number, scaleH: number): [number, number, number, number] {
-        const l = glyph.atlasBounds.left / scaleW
-        const b = (scaleH - glyph.atlasBounds.top) / scaleH
-        const w = (glyph.atlasBounds.right - glyph.atlasBounds.left) / scaleW
-        const h = (glyph.atlasBounds.top - glyph.atlasBounds.bottom) / scaleH
-        return [l, b, w, h]
-    }
-
     public async loadFont(fontSheetUrl: string, metricsUrl: string): Promise<void> {
         this.fontTexture = await this.loadFontTexture(fontSheetUrl)
         const response = await fetch(metricsUrl)
