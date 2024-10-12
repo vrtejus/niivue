@@ -88,95 +88,133 @@ export class NVArcContainer implements AlignableComponent, AnchoredComponent, UI
     }
 
     // Align children components in an arc pattern based on their projected positions
-    align(dimensions: NVRenderDimensions, leftTopWidthHeight: number[]): void {
+    // align(dimensions: NVRenderDimensions, leftTopWidthHeight: number[]): void {
+    //     if (this.children.length === 0) return
+
+    //     const [left, top, canvasWidth, canvasHeight] = leftTopWidthHeight
+
+    //     // Calculate the center and radius of the arc based on the rendering bounds
+    //     const centerX = left + canvasWidth / 2
+    //     const centerY = top + canvasHeight / 2
+    //     const radius = Math.min(canvasWidth, canvasHeight) / 2
+
+    //     // Calculate the angle step based on the number of visible components
+    //     const visibleChildren = this.children.filter(child => {
+    //         if (!child.isVisible) return false
+    //         if (isModelComponent(child)) {
+    //             if (dimensions === NVRenderDimensions.TWO && !child.isRenderedIn2D) return false
+    //             if (dimensions === NVRenderDimensions.THREE && !child.isRenderedIn3D) return false
+    //         }
+    //         return true
+    //     })
+
+    //     if (visibleChildren.length === 0) return
+
+    //     const angleStep = (2 * Math.PI) / visibleChildren.length
+    //     let angle = Math.PI * .75
+
+    //     // Array to store components with their precomputed projected positions
+    //     const projectedPositions: { component: UIComponent, projectedPos: vec2, width: number, height: number }[] = []
+
+    //     // Generate array of projected positions for each visible child
+    //     for (const child of visibleChildren) {
+    //         if (isModelComponent(child)) {
+    //             const projectedPos = vec2.clone(child.getProjectedPosition())
+    //             const width = child.getScreenWidth()
+    //             const height = child.getScreenHeight()
+    //             projectedPositions.push({ component: child, projectedPos, width, height })
+    //         }
+    //     }
+
+    //     // Distribute components evenly in an arc based on closest proximity
+    //     for (let i = 0; i < visibleChildren.length; i++) {
+    //         const x = centerX + radius * Math.cos(angle)
+    //         const y = centerY + radius * Math.sin(angle)
+
+    //         // Calculate the screen position considering the component's width and height
+    //         const screenPos = vec2.fromValues(x, y)
+
+    //         // Find the closest component to this screen position
+    //         let closestIndex = -1
+    //         let closestDistance = Number.MAX_VALUE
+
+    //         for (let j = 0; j < projectedPositions.length; j++) {
+    //             const { projectedPos, width, height } = projectedPositions[j]
+
+    //             // Calculate the distance from the screen position to the center of the component's bounding box
+    //             const centerXPos = projectedPos[0] + width / 2
+    //             const centerYPos = projectedPos[1] + height / 2
+    //             const distance = vec2.distance(screenPos, vec2.fromValues(centerXPos, centerYPos))
+
+    //             if (distance < closestDistance) {
+    //                 closestDistance = distance
+    //                 closestIndex = j
+    //             }
+    //         }
+
+    //         // If a closest component was found, assign it to the current screen position
+    //         if (closestIndex !== -1) {
+    //             const closestComponent = projectedPositions[closestIndex].component
+
+    //             // Adjust the screen position to keep the component fully within bounds
+    //             let adjustedX = screenPos[0]
+    //             let adjustedY = screenPos[1]
+
+    //             // Prevent the component from being positioned outside the left or right bounds
+    //             adjustedX = Math.max(left, Math.min(adjustedX, left + canvasWidth - closestComponent.getScreenWidth() * 1.5))
+
+    //             // Prevent the component from being positioned outside the top or bottom bounds
+    //             adjustedY = Math.max(top, Math.min(adjustedY, top + canvasHeight - closestComponent.getScreenHeight() * 1.5))
+
+    //             // Set the adjusted screen position to the component
+    //             closestComponent.setScreenPosition(vec2.fromValues(adjustedX, adjustedY))
+
+    //             // Remove the assigned component from the list to avoid duplicate assignments
+    //             projectedPositions.splice(closestIndex, 1)
+    //         }
+
+    //         // Increment the angle for the next position
+    //         angle += angleStep
+    //     }
+    // }
+    align(): void {
         if (this.children.length === 0) return
 
-        const [left, top, canvasWidth, canvasHeight] = leftTopWidthHeight
+        // Define a uniform distance in pixels to place each child away from its projected point
+        const uniformDistance = 20
 
-        // Calculate the center and radius of the arc based on the rendering bounds
-        const centerX = left + canvasWidth / 2
-        const centerY = top + canvasHeight / 2
-        const radius = Math.min(canvasWidth, canvasHeight) / 2
+        // Calculate the center of the container
+        const containerCenter = vec2.fromValues(
+            (this.topLeftScreenPosition[0] + this.bottomRightScreenPosition[0]) / 2,
+            (this.topLeftScreenPosition[1] + this.bottomRightScreenPosition[1]) / 2
+        )
 
-        // Calculate the angle step based on the number of visible components
-        const visibleChildren = this.children.filter(child => {
-            if (!child.isVisible) return false
+        // Calculate the projected positions of each child and store them in an array
+        const projectedPositions: { component: UIComponent, projectedPosition: vec2 }[] = this.children.map(child => {
             if (isModelComponent(child)) {
-                if (dimensions === NVRenderDimensions.TWO && !child.isRenderedIn2D) return false
-                if (dimensions === NVRenderDimensions.THREE && !child.isRenderedIn3D) return false
+                const projectedPosition = child.getProjectedPosition()
+                return { component: child, projectedPosition }
             }
-            return true
+            return { component: child, projectedPosition: vec2.fromValues(0, 0) } // Default position if not a UIModelComponent
         })
 
-        if (visibleChildren.length === 0) return
+        // Iterate over each child and determine its screen position based on its projected position
+        for (const { component, projectedPosition } of projectedPositions) {
+            // Calculate the vector from the container center to the projected position
+            const directionVector = vec2.create()
+            vec2.sub(directionVector, projectedPosition, containerCenter)
+            vec2.normalize(directionVector, directionVector) // Normalize the direction vector
 
-        const angleStep = (2 * Math.PI) / visibleChildren.length
-        let angle = Math.PI * .75
+            // Calculate the new screen position by moving `uniformDistance` pixels along the direction vector
+            const newScreenPosition = vec2.create()
+            vec2.scaleAndAdd(newScreenPosition, projectedPosition, directionVector, uniformDistance)
 
-        // Array to store components with their precomputed projected positions
-        const projectedPositions: { component: UIComponent, projectedPos: vec2, width: number, height: number }[] = []
-
-        // Generate array of projected positions for each visible child
-        for (const child of visibleChildren) {
-            if (isModelComponent(child)) {
-                const projectedPos = vec2.clone(child.getProjectedPosition())
-                const width = child.getScreenWidth()
-                const height = child.getScreenHeight()
-                projectedPositions.push({ component: child, projectedPos, width, height })
-            }
-        }
-
-        // Distribute components evenly in an arc based on closest proximity
-        for (let i = 0; i < visibleChildren.length; i++) {
-            const x = centerX + radius * Math.cos(angle)
-            const y = centerY + radius * Math.sin(angle)
-
-            // Calculate the screen position considering the component's width and height
-            const screenPos = vec2.fromValues(x, y)
-
-            // Find the closest component to this screen position
-            let closestIndex = -1
-            let closestDistance = Number.MAX_VALUE
-
-            for (let j = 0; j < projectedPositions.length; j++) {
-                const { projectedPos, width, height } = projectedPositions[j]
-
-                // Calculate the distance from the screen position to the center of the component's bounding box
-                const centerXPos = projectedPos[0] + width / 2
-                const centerYPos = projectedPos[1] + height / 2
-                const distance = vec2.distance(screenPos, vec2.fromValues(centerXPos, centerYPos))
-
-                if (distance < closestDistance) {
-                    closestDistance = distance
-                    closestIndex = j
-                }
-            }
-
-            // If a closest component was found, assign it to the current screen position
-            if (closestIndex !== -1) {
-                const closestComponent = projectedPositions[closestIndex].component
-
-                // Adjust the screen position to keep the component fully within bounds
-                let adjustedX = screenPos[0]
-                let adjustedY = screenPos[1]
-
-                // Prevent the component from being positioned outside the left or right bounds
-                adjustedX = Math.max(left, Math.min(adjustedX, left + canvasWidth - closestComponent.getScreenWidth() * 1.5))
-
-                // Prevent the component from being positioned outside the top or bottom bounds
-                adjustedY = Math.max(top, Math.min(adjustedY, top + canvasHeight - closestComponent.getScreenHeight() * 1.5))
-
-                // Set the adjusted screen position to the component
-                closestComponent.setScreenPosition(vec2.fromValues(adjustedX, adjustedY))
-
-                // Remove the assigned component from the list to avoid duplicate assignments
-                projectedPositions.splice(closestIndex, 1)
-            }
-
-            // Increment the angle for the next position
-            angle += angleStep
+            // Set the child's screen position directly without checking if it is an anchored component
+            component.setScreenPosition(newScreenPosition)
         }
     }
+
+
 
     // Update children's projected positions based on a given transformation matrix
     updateChildrenProjectedPositions(leftTopWidthHeight: number[], mvpMatrix: mat4): void {
