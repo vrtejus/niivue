@@ -163,30 +163,66 @@ export class NVFont {
         if (!str) {
             return 0
         }
-
+        console.log('scale for text width is ', scale)
         let w = 0
         const bytes = new TextEncoder().encode(str)
         for (let i = 0; i < str.length; i++) {
             w += scale * this.fontMets.mets[bytes[i]].xadv
         }
-        return w * scale * this.gl.canvas.height * this.textHeight
+        const textWidth = w * this.gl.canvas.height * this.textHeight
+        console.log('textWidth', textWidth)
+        return textWidth
+    }
+
+    public getDescenderDepth(scale: number, str: string): number {
+        if (!str) {
+            return 0
+        }
+
+        let minBottom = 0
+        const bytes = new TextEncoder().encode(str)
+
+        for (let i = 0; i < bytes.length; i++) {
+            const glyph = this.fontMets!.mets[bytes[i]]
+            if (glyph) {
+                const bottom = glyph.lbwh[1]
+                minBottom = Math.min(minBottom, bottom)
+            }
+        }
+
+        return scale * minBottom * this.gl.canvas.height * this.textHeight
     }
 
     public getTextHeight(scale: number, str: string): number {
         if (!str) {
             return 0
         }
-        const byteSet = new Set(Array.from(str))
-        const bytes = new TextEncoder().encode(Array.from(byteSet).join(''))
 
-        const tallest = Object.values(this.fontMets.mets)
-            .filter((_, index) => bytes.includes(index))
-            .reduce((a, b) => (a.lbwh[3] > b.lbwh[3] ? a : b))
+        let minBottom = Infinity
+        let maxTop = -Infinity
 
-        const height = tallest.lbwh[3]
+        const bytes = new TextEncoder().encode(str)
+        for (let i = 0; i < bytes.length; i++) {
+            const glyph = this.fontMets.mets[bytes[i]]
+            if (glyph) {
+                const bottom = glyph.lbwh[1]
+                const top = glyph.lbwh[1] + glyph.lbwh[3]
+                minBottom = Math.min(minBottom, bottom)
+                maxTop = Math.max(maxTop, top)
+            }
+        }
+
+        const height = maxTop - minBottom
 
         return scale * height * this.gl.canvas.height * this.textHeight
     }
+
+    public getTextBounds(scale: number, str: string): number[] {
+        const width = this.getTextWidth(scale, str)
+        const height = this.getTextHeight(scale, str)
+        return [0, 0, width, height]
+    }
+
 
     drawChar(xy: number[], scale: number, char: number): number {
         if (!this.fontShader) {

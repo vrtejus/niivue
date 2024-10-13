@@ -65,11 +65,12 @@ export class NVLabelLine implements UIModelComponent, ProjectedScreenObject {
 
     // Getters for the width and height of the label and its enclosing rectangle
     getScreenWidth(): number {
+        console.log('margin is ' + this.margin)
         return this.font.getTextWidth(this.scale, this.text) + 2 * this.margin
     }
 
     getScreenHeight(): number {
-        return this.font.getTextHeight(this.scale, this.text) * 1.5 + 2 * this.margin
+        return this.font.getTextHeight(this.scale, this.text) + 2 * this.margin
     }
 
     updateProjectedPosition(leftTopWidthHeight: number[], mvpMatrix: mat4): void {
@@ -94,14 +95,9 @@ export class NVLabelLine implements UIModelComponent, ProjectedScreenObject {
         if (!this.isVisibleIn3D && dimensions === NVRenderDimensions.THREE) return
         const endPoint = this.projectedPosition
         const startPoint = vec2.clone(this.screenPosition)
-        const rectWidth = Math.max(this.getScreenWidth(), this.font.getTextWidth(this.scale, this.text) + 2 * this.margin) // Ensure the rect is large enough
-        const rectHeight = Math.max(this.getScreenHeight(), this.font.getTextHeight(this.scale, this.text) * 1.5 + 2 * this.margin)
-        const rectPoints = [
-            vec2.fromValues(this.screenPosition[0], this.screenPosition[1]), // Top-left
-            vec2.fromValues(this.screenPosition[0] + rectWidth, this.screenPosition[1]), // Top-right
-            vec2.fromValues(this.screenPosition[0], this.screenPosition[1] + rectHeight), // Bottom-left
-            vec2.fromValues(this.screenPosition[0] + rectWidth, this.screenPosition[1] + rectHeight) // Bottom-right
-        ]
+        const rectWidth = this.getScreenWidth() // Width of the rectangle enclosing the text
+        const rectHeight = this.getScreenHeight() // Height of the rectangle enclosing the text
+
         let edgeMidPoints = [
             vec2.fromValues(this.screenPosition[0] + rectWidth / 2, this.screenPosition[1]), // Top edge midpoint
             vec2.fromValues(this.screenPosition[0] + rectWidth / 2, this.screenPosition[1] + rectHeight), // Bottom edge midpoint
@@ -126,14 +122,18 @@ export class NVLabelLine implements UIModelComponent, ProjectedScreenObject {
         )
 
         // Render the background rect at the start point
-
         this.drawer.drawRect(
             [startPoint[0], startPoint[1], rectWidth, rectHeight],
             this.backgroundColor as [number, number, number, number]
         )
 
-        // Adjust the position of the text with a margin
-        const textPosition = [startPoint[0] + this.margin, startPoint[1] + this.margin]
+        const descenderDepth = this.font.getDescenderDepth(this.scale, this.text)
+        console.log('descender depth', descenderDepth)
+        // Adjust the position of the text with a margin, ensuring it's vertically centered
+        const textPosition = [
+            this.screenPosition[0] + this.margin,
+            this.screenPosition[1] + this.margin + descenderDepth
+        ]
 
         // Render the text
         this.font.drawText(textPosition, this.text, this.scale, this.color)
