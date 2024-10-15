@@ -65,7 +65,6 @@ export class NVLabelLine implements UIModelComponent, ProjectedScreenObject {
 
     // Getters for the width and height of the label and its enclosing rectangle
     getScreenWidth(): number {
-        console.log('margin is ' + this.margin)
         return this.font.getTextWidth(this.scale, this.text) + 2 * this.margin
     }
 
@@ -77,7 +76,7 @@ export class NVLabelLine implements UIModelComponent, ProjectedScreenObject {
         // Calculate the new screen position using the mvpMatrix
         const newScreenPosition = vec2.create()
         const projected = vec4.create()
-        vec4.transformMat4(projected, vec4.fromValues(this.modelPosition[0], this.modelPosition[1], this.modelPosition[2], 1.0), mvpMatrix)
+        vec4.transformMat4(projected, vec4.fromValues(this.modelPosition[0], this.modelPosition[1], this.modelPosition[2], 0.5), mvpMatrix)
 
         if (projected[3] !== 0) {
             newScreenPosition[0] = (projected[0] / projected[3] + 1) * 0.5 * leftTopWidthHeight[2] + leftTopWidthHeight[0]
@@ -122,11 +121,14 @@ export class NVLabelLine implements UIModelComponent, ProjectedScreenObject {
         )
 
         // Render the background rect at the start point
-        this.drawer.drawRect(
-            [startPoint[0], startPoint[1], rectWidth, rectHeight],
-            this.backgroundColor as [number, number, number, number]
-        )
-
+        // this.drawer.drawRect(
+        //     [startPoint[0], startPoint[1], rectWidth, rectHeight],
+        //     this.backgroundColor as [number, number, number, number]
+        // )
+        this.backgroundColor = [0.0, 1.0, 0.0, 0.3]
+        this.drawer.drawRoundedRect([startPoint[0], startPoint[1], rectWidth, rectHeight], 0.10, this.backgroundColor as [number, number, number, number], [1.0, 1.0, 1.0, 1.0], 0.01)
+        // this.drawer.drawRoundedRect([600, 300, 800, 400], 0.1, this.backgroundColor as [number, number, number, number], [1.0, 1.0, 1.0, 1.0], 0.05)
+        // this.drawer.drawRoundedRect([startPoint[0], startPoint[1] + rectHeight * 0.25, rectWidth, rectHeight], 20.0, this.backgroundColor as [number, number, number, number], [1.0, 1.0, 1.0, 1.0], 2)
         const descenderDepth = this.font.getDescenderDepth(this.scale, this.text)
         console.log('descender depth', descenderDepth)
         // Adjust the position of the text with a margin, ensuring it's vertically centered

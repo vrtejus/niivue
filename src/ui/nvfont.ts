@@ -163,14 +163,12 @@ export class NVFont {
         if (!str) {
             return 0
         }
-        console.log('scale for text width is ', scale)
         let w = 0
         const bytes = new TextEncoder().encode(str)
         for (let i = 0; i < str.length; i++) {
             w += scale * this.fontMets.mets[bytes[i]].xadv
         }
         const textWidth = w * this.gl.canvas.height * this.textHeight
-        console.log('textWidth', textWidth)
         return textWidth
     }
 

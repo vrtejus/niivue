@@ -719,6 +719,104 @@ void main() {
 	color = lineColor;
 }`
 
+export const vertRoundedRectShader = `#version 300 es
+layout(location = 0) in vec3 pos;
+
+uniform vec2 canvasWidthHeight;
+uniform vec4 leftTopWidthHeight;
+
+out vec2 v_position; // Pass normalized position to fragment shader
+
+void main(void) {
+    // Convert pixel x, y space to WebGL -1..1, -1..1
+    vec2 normalized = (pos.xy * leftTopWidthHeight.zw + leftTopWidthHeight.xy) / canvasWidthHeight;
+    // Invert y-axis for NDC
+    normalized.y = 1.0 - normalized.y;
+
+    // Convert from [0, 1] to [-1, 1]
+    v_position = (normalized * 2.0) - 1.0;
+
+    // Set gl_Position for rendering
+    gl_Position = vec4(v_position, 0.0, 1.0);
+}
+
+`
+
+export const fragRoundedRectShader = `#version 300 es
+precision highp float;
+
+in vec2 v_position;           // Normalized position from vertex shader in [-1, 1] space
+uniform float u_roundness;    // Roundness of the corners
+uniform vec4 u_fillColor;     // Fill color (r, g, b, a)
+uniform vec4 u_outlineColor;  // Outline color (r, g, b, a)
+uniform float u_outlineWidth; // Width of the outline
+uniform vec2 u_rectSize;      // Half-size of the rectangle in NDC space
+
+out vec4 color;
+
+// Helper: Compute the distance to the closest edge of the rounded rectangle
+float sdRoundedRect(vec2 p, vec2 size, float radius) {
+    vec2 q = abs(p) - size + vec2(radius);
+    return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - radius;
+}
+
+void main() {
+    // Use the v_position directly, as it is already in NDC space and consistent
+    float dist = sdRoundedRect(v_position, u_rectSize, u_roundness);
+
+    // Smooth anti-aliased edge
+    float edgeSmooth = fwidth(dist);
+
+    // Determine the alpha values for fill and outline
+    float alphaFill = smoothstep(0.0, edgeSmooth, -dist);
+    float alphaOutline = smoothstep(0.0, edgeSmooth, u_outlineWidth - dist);
+
+    // Determine the color based on distance (whether it is in outline or fill)
+    vec4 finalColor = mix(u_outlineColor, u_fillColor, alphaFill);
+
+    // Output the final color with combined alpha
+    color = vec4(finalColor.rgb, finalColor.a * alphaOutline);
+}
+
+
+`
+// export const fragRoundedRectShader = `#version 300 es
+// precision highp float;
+
+// in vec2 v_position;            // Normalized position from vertex shader in [-1, 1] space
+// uniform vec2 canvasWidthHeight;     // Canvas width and height
+// uniform vec2 u_rectSize;       // Half-size of the rectangle in NDC space
+// uniform vec2 u_rectPos;        // Center position of the rectangle in NDC space
+// uniform float u_roundness;     // Roundness of the corners
+
+// uniform vec4 u_fillColor;      // Fill color (r, g, b, a)
+// uniform vec4 u_outlineColor;   // Outline color (r, g, b, a)
+// uniform float u_outlineWidth;  // Width of the outline
+
+// out vec4 color;
+
+// void main() {
+//     // Calculate the distance from the fragment position to the center of the rectangle
+//     vec2 distToCenter = abs(v_position - u_rectPos) - u_rectSize;
+
+//     // Compute the distance to the edge of the rounded rectangle
+//     float roundedDist = max(distToCenter.x, distToCenter.y) - u_roundness;
+
+//     // Smooth anti-aliased edge
+//     float edgeSmooth = fwidth(roundedDist);
+
+//     // Determine alpha values for fill and outline
+//     float alphaFill = smoothstep(0.0, edgeSmooth, -roundedDist);
+//     float alphaOutline = smoothstep(0.0, edgeSmooth, u_outlineWidth - roundedDist);
+
+//     // Mix between the outline color and the fill color based on alpha value
+//     vec4 finalColor = mix(u_outlineColor, u_fillColor, alphaFill);
+
+//     // Set the final fragment color with combined alpha
+//     color = vec4(finalColor.rgb, finalColor.a * alphaOutline);
+// }
+// `
+
 export const vertColorbarShader = `#version 300 es
 #line 490
 layout(location=0) in vec3 pos;
