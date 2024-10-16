@@ -47,7 +47,7 @@
   </body>
 </html>
 <script type="module" async>
-  import * as niivue from "../dist/index.js";
+  import { Niivue } from "../../src/niivue/index.ts";
   padSlider.oninput = function () {
     nv1.setMultiplanarPadPixels(this.value);
   };
@@ -67,7 +67,7 @@
     show3Dcrosshair: true,
     backColor: [0.64, 0.76, 0.68, 1],
   };
-  var nv1 = new niivue.Niivue(opts);
+  var nv1 = new Niivue(opts);
   nv1.attachTo("gl1");
   nv1.setMultiplanarPadPixels(5);
   nv1.graph.opacity = 1.0;

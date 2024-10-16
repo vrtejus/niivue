@@ -39,7 +39,7 @@
       &nbsp;<button id="custom">Apply</button>&nbsp;
     </footer>
     <script type="module" async>
-      import * as niivue from "../dist/index.js";
+      import { Niivue } from "../../src/niivue/index.ts";
       
       var slider = document.getElementById("alphaSlider");
       slider.oninput = function () {
@@ -76,7 +76,7 @@
         show3Dcrosshair: true,
         onLocationChange: handleLocationChange,
       };
-      var nv1 = new niivue.Niivue(defaults);
+      var nv1 = new Niivue(defaults);
       nv1.setRadiologicalConvention(false);
       nv1.attachTo("gl1");
       var volumeList1 = [

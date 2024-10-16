@@ -45,8 +45,8 @@
             break;
         }
       };
-      import * as niivue from "../dist/index.js";
-      var nv1 = new niivue.Niivue();
+      import { Niivue } from "../../src/niivue/index.ts";
+      var nv1 = new Niivue();
       nv1.attachTo("gl1");
       nv1.setSliceType(nv1.sliceTypeMultiplanar);
     </script>

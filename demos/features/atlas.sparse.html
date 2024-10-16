@@ -43,7 +43,7 @@
       function handleLocationChange(data) {
         document.getElementById("location").innerHTML = data.string
       }
-      var nv1 = new niivue.Niivue({ onLocationChange: handleLocationChange })
+      var nv1 = new Niivue({ onLocationChange: handleLocationChange })
       nv1.opts.multiplanarShowRender = niivue.SHOW_RENDER.ALWAYS
       nv1.opts.dragMode = nv1.dragModes.pan
       nv1.opts.yoke3Dto2DZoom = true

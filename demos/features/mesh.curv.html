@@ -40,7 +40,7 @@
       </select>
     </footer>
     <script type="module" async>
-      import * as niivue from "../dist/index.js";
+      import { Niivue } from "../../src/niivue/index.ts";
       var slider0 = document.getElementById("meshSlider0");
       slider0.oninput = function () {
         nv1.setMeshLayerProperty(
@@ -62,7 +62,7 @@
         let matCapName = document.getElementById("matCaps").value;
         nv1.loadMatCapTexture("../matcaps/" + matCapName + ".jpg");
       }
-      var nv1 = new niivue.Niivue({
+      var nv1 = new Niivue({
         loadingText: "there are no images",
         backColor: [1, 1, 1, 1],
         show3Dcrosshair: true,

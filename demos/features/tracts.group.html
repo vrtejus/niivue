@@ -59,7 +59,7 @@
   </footer>
 </html>
 <script type="module" async>
-  import * as niivue from "../dist/index.js";
+  import { Niivue } from "../../src/niivue/index.ts";
   fiberRadius.oninput = function () {
     nv1.setMeshProperty(nv1.meshes[0].id, "fiberRadius", this.value * 0.1)
     nv1.updateGLVolume()
@@ -107,7 +107,7 @@
     nv1.setMeshProperty(nv1.meshes[0].id, "fiberDecimationStride", this.value);
   };
   var volumeList1 = [{ url: "../images/sub-01_ses-01_dwi_desc-b0_dwi.nii.gz" }];
-  var nv1 = new niivue.Niivue({
+  var nv1 = new Niivue({
     show3Dcrosshair: true,
     backColor: [0.7, 0.7, 0.7, 1],
   });

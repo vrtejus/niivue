@@ -61,7 +61,7 @@
       </div>
     </section>
     <script type="module" async>
-      import * as niivue from "../dist/index.js";
+      import { Niivue } from "../../src/niivue/index.ts";
       
       const meshOptions = {
         url: "../images/CIT168.mz3",
@@ -89,7 +89,7 @@
           visible: true,
         },
       ];
-      var nv1 = new niivue.Niivue({
+      var nv1 = new Niivue({
         show3Dcrosshair: true,
         backColor: [1, 1, 1, 1],
       });

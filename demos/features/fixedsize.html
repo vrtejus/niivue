@@ -37,10 +37,10 @@
   </body>
 </html>
 <script type="module" async>
-  import * as niivue from "../dist/index.js";
+  import { Niivue } from "../../src/niivue/index.ts";
   
   var volumeList1 = [{ url: "../images/FLAIR.nii.gz" }];
-  var nv1 = new niivue.Niivue({
+  var nv1 = new Niivue({
     isResizeCanvas: false,
   });
   nv1.attachTo("gl");

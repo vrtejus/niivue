@@ -55,7 +55,7 @@
       </div>
     </section>
     <script>
-      import * as niivue from "../dist/index.js";
+      import { Niivue } from "../../src/niivue/index.ts";
       
       const volumeList1 = [
         // first item is background image
@@ -67,11 +67,11 @@
         },
       ];
       async function load() {
-        var nv1 = new niivue.Niivue();
+        var nv1 = new Niivue();
         await nv1.attachTo("gl1");
         await nv1.loadVolumes(volumeList1);
         nv1.setSliceType(nv1.sliceTypeMultiplanar);
-        var nv2 = new niivue.Niivue();
+        var nv2 = new Niivue();
         await nv2.attachTo("gl2");
         nv2.setSliceType(nv2.sliceTypeMultiplanar);
         nv2.volumes.push(nv1.volumes[0].clone());

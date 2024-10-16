@@ -127,7 +127,7 @@
   </body>
 </html>
 <script type="module" async>
-  import * as niivue from "../dist/index.js";
+  import { Niivue } from "../../src/niivue/index.ts";
   
   const isTouchDevice =
     "ontouchstart" in window ||
@@ -138,7 +138,7 @@
     document.getElementById("intensity").innerHTML =
       "&nbsp;&nbsp;" + data.string;
   }
-  var nv1 = new niivue.Niivue({
+  var nv1 = new Niivue({
     logging: true,
     dragAndDropEnabled: true,
     backColor: [0, 0, 0, 1],

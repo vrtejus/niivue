@@ -45,7 +45,7 @@
     </main>
     <footer id="location">&nbsp;</footer>
     <script type="module" async>
-      import * as niivue from "../dist/index.js";
+      import { Niivue } from "../../src/niivue/index.ts";
       about.onclick = function () {
         window.alert("Experimental diffusion tensor V1 validation (to do: assumptions regarding neurological convention, slice orientation, world space)")
       }
@@ -82,7 +82,7 @@
           visible: false,
         },
       ];
-      var nv1 = new niivue.Niivue({ 
+      var nv1 = new Niivue({ 
         backColor: [0.0, 0.0, 0.2, 1],
         show3Dcrosshair: true,
         onLocationChange: handleLocationChange,

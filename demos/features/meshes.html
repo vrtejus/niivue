@@ -35,7 +35,7 @@
   </body>
 </html>
 <script type="module" async>
-  import * as niivue from "../dist/index.js";
+  import { Niivue } from "../../src/niivue/index.ts";
   
   var slider = document.getElementById("meshSlider");
   slider.oninput = function () {
@@ -50,7 +50,7 @@
   function doReverse() {
     nv1.reverseFaces(nv1.meshes[0].id);
   }
-  var nv1 = new niivue.Niivue({
+  var nv1 = new Niivue({
     show3Dcrosshair: true,
     backColor: [0.9, 0.9, 1, 1],
   });

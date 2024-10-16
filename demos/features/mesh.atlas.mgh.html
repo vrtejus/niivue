@@ -37,7 +37,7 @@
   </body>
 </html>
 <script type="module" async>
-  import * as niivue from "../dist/index.js";
+  import { Niivue } from "../../src/niivue/index.ts";
   
   var slider = document.getElementById("meshSlider");
   slider.oninput = function () {
@@ -48,7 +48,7 @@
       this.value / 255.0
     );
   };
-  var nv1 = new niivue.Niivue({
+  var nv1 = new Niivue({
     show3Dcrosshair: true,
     backColor: [0.4, 0.4, 0.4, 1],
   });

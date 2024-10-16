@@ -20,7 +20,7 @@
       <canvas id="gl1"></canvas>
     </main>
     <script type="module" async>
-      import * as niivue from "../dist/index.js";
+      import { Niivue } from "../../src/niivue/index.ts";
       async function addVolumeFromFiles(f) {
           console.log('attempting to open ', f[0].name)
           console.log('details', f[0])
@@ -36,7 +36,7 @@
         }
         input.click()
       }
-      var nv1 = new niivue.Niivue();
+      var nv1 = new Niivue();
       nv1.attachTo("gl1");
       nv1.setSliceType(nv1.sliceTypeRender);
     </script>

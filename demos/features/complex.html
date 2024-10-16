@@ -27,7 +27,7 @@
   </body>
 </html>
 <script type="module" async>
-  import * as niivue from "../dist/index.js";
+  import { Niivue } from "../../src/niivue/index.ts";
   sliceType.onchange = function () {
     nv1.setSliceType(parseInt(this.value));
   }
@@ -35,7 +35,7 @@
     document.getElementById("intensity").innerHTML = data.string;
   }
   var volumeList1 = [{url: "../images/complex.nii.gz",}];
-  var nv1 = new niivue.Niivue({
+  var nv1 = new Niivue({
     onLocationChange: handleIntensityChange,
   });
   nv1.attachTo("gl1");

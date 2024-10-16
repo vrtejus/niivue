@@ -28,7 +28,7 @@
     </main>
     <footer id="location">&nbsp;</footer>
     <script type="module" async>
-      import * as niivue from "../dist/index.js";
+      import { Niivue } from "../../src/niivue/index.ts";
       
       document.getElementById("dragMode").onchange = function () {
         nv1.opts.dragMode = this.selectedIndex;
@@ -52,7 +52,7 @@
         else
             document.getElementById("location").innerHTML = `Tile: ${info.tileIdx} Orient: ${info.axCorSag} Length:${Math.round(info.mmLength)} x:${info.voxStart[0]}..${info.voxEnd[0]} y:${info.voxStart[1]}..${info.voxEnd[1]} z:${info.voxStart[2]}..${info.voxEnd[2]}`;
       }
-      var nv1 = new niivue.Niivue(defaults);
+      var nv1 = new Niivue(defaults);
       nv1.setRadiologicalConvention(false);
       nv1.attachTo("gl1");
       nv1.setSliceType(nv1.sliceTypeMultiplanar);

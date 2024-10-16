@@ -49,7 +49,7 @@
   </body>
 </html>
 <script type="module" async>
-  import * as niivue from "../dist/index.js";
+  import { Niivue } from "../../src/niivue/index.ts";
   
   var checkbox1 = document.getElementById("meshCheckbox1");
   checkbox1.onclick = function () {
@@ -68,7 +68,7 @@
     document.getElementById("location").innerHTML =
       "&nbsp;&nbsp;" + data.string;
   }
-  var nv1 = new niivue.Niivue({
+  var nv1 = new Niivue({
     show3Dcrosshair: true,
     onLocationChange: handleLocationChange,
     backColor: [1, 1, 1, 1],

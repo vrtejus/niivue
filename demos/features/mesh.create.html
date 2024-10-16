@@ -44,7 +44,7 @@
   </body>
 </html>
 <script type="module" async>
-  import * as niivue from "../dist/index.js";
+  import { Niivue } from "../../src/niivue/index.ts";
   function createTrefoilKnot(slices = 256, stacks = 64) {
     // https://github.com/prideout/par/tree/master
     // by Philip Rideout with MIT license
@@ -130,7 +130,7 @@
       niivue.NVMeshUtilities.saveMesh(nv1.meshes[0].pts, nv1.meshes[0].tris, 'trefoil.stl')
     }
   }
-  var nv1 = new niivue.Niivue({show3Dcrosshair: true})
+  var nv1 = new Niivue({show3Dcrosshair: true})
   nv1.attachToCanvas(gl1)
   const mesh = createTrefoilKnot()
   const meshBuffer = niivue.NVMeshUtilities.createMZ3(mesh.pts, mesh.tris,  false)

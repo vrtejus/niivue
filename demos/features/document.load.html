@@ -71,7 +71,7 @@
     </main>
 
     <script type="module">
-      import * as niivue from "../dist/index.js";
+      import { Niivue } from "../../src/niivue/index.ts";
 
       function toggleHippo() {
         let buttonElem = document.getElementById("toggleHippoButton");
@@ -123,7 +123,7 @@
 
       const url = "../images/hippo.nii.gz";
       var isHippoShowing = false;
-      var nv1 = new niivue.Niivue();
+      var nv1 = new Niivue();
       nv1.attachTo("gl1");
 
       var buttons = document.getElementsByClassName("viewBtn");

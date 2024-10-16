@@ -28,7 +28,7 @@
   </body>
 </html>
 <script type="module">
-  import * as niivue from "../dist/index.js";
+  import { Niivue } from "../../src/niivue/index.ts";
   
   var volumeList1 = [
     // first item is background image
@@ -39,7 +39,7 @@
       visible: true,
     },
   ];
-  var nv1 = new niivue.Niivue({ backColor: [0.7, 0.7, 0.9, 1] });
+  var nv1 = new Niivue({ backColor: [0.7, 0.7, 0.9, 1] });
   nv1.attachTo("gl1");
   nv1.loadVolumes(volumeList1);
   nv1.opts.isColorbar = true;

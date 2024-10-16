@@ -59,7 +59,7 @@
     </main>
 
     <script type="module">
-      import * as niivue from "../dist/index.js";
+      import { Niivue } from "../../src/niivue/index.ts";
       
       function toggleHippo() {
         let buttonElem = document.getElementById("toggleHippoButton");
@@ -96,7 +96,7 @@
           visible: true,
         },
       ];
-      var nv1 = new niivue.Niivue();
+      var nv1 = new Niivue();
       nv1.attachTo("gl1");
       nv1.loadVolumes(volumeList1);
       nv1.setSliceType(nv1.sliceTypeRender);

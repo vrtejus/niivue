@@ -30,7 +30,7 @@ nv1.opts.isColorbar = !nv1.opts.isColorbar;&#10;nv1.opts.backColor[0] = 1 - nv1.
       <button id="scriptButton">run script</button>
     </footer>
     <script type="module" async>
-      import * as niivue from "../dist/index.js";
+      import { Niivue } from "../../src/niivue/index.ts";
       document
         .getElementById("scriptButton")
         .addEventListener("click", doScript);
@@ -46,7 +46,7 @@ nv1.opts.isColorbar = !nv1.opts.isColorbar;&#10;nv1.opts.backColor[0] = 1 - nv1.
           visible: true,
         },
       ];
-      var nv1 = new niivue.Niivue({
+      var nv1 = new Niivue({
         show3Dcrosshair: true,
         backColor: [1, 0.5, 1, 1],
       });

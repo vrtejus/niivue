@@ -63,7 +63,7 @@
   </body>
 </html>
 <script type="module" async>
-  import * as niivue from "../dist/index.js";
+  import { Niivue } from "../../src/niivue/index.ts";
   curveSlider.onchange = function () {
     nv1.setMeshLayerProperty(nv1.meshes[0].id, 0, "opacity", this.value * 0.1);
   }
@@ -91,7 +91,7 @@
   check2.onchange = function () {
     nv1.setMeshLayerProperty(nv1.meshes[0].id, 1, "alphaThreshold", check2.checked);
   };
-  var nv1 = new niivue.Niivue({
+  var nv1 = new Niivue({
     show3Dcrosshair: true,
     backColor: [0, 0, 0, 1],
   });

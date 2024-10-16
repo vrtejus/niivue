@@ -53,7 +53,7 @@
       <canvas id="gl1"></canvas>
     </main>
     <script type="module" async>
-      import * as niivue from "../dist/index.js";
+      import { Niivue } from "../../src/niivue/index.ts";
       
       var dropDrag = document.getElementById("dragMode");
       dropDrag.onchange = function () {
@@ -144,7 +144,7 @@
           visible: true,
         },
       ];
-      var nv1 = new niivue.Niivue({
+      var nv1 = new Niivue({
         dragAndDropEnabled: true,
         backColor: [0.3, 0.2, 0.4, 1],
         show3Dcrosshair: true,

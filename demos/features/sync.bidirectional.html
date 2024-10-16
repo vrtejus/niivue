@@ -113,7 +113,7 @@
       <x id="intensity3"> &nbsp;</x>
     </footer>
     <script type="module" async>
-      import * as niivue from "../dist/index.js";
+      import { Niivue, SHOW_RENDER } from "../../src/niivue/index.ts";
       layout.onchange = function () {
         nv1.setMultiplanarLayout(parseInt(this.value));
         nv2.setMultiplanarLayout(parseInt(this.value));
@@ -163,33 +163,33 @@
         document.getElementById("intensity3").innerHTML =
           "&nbsp;&nbsp;" + data.string;
       }
-      var nv1 = new niivue.Niivue({
+      var nv1 = new Niivue({
         show3Dcrosshair: true,
         onLocationChange: handleIntensityChange,
         backColor: [1, 1, 1, 1],
         dragMode: 3,
         sliceType: 3,
-        multiplanarShowRender: niivue.SHOW_RENDER.ALWAYS
+        multiplanarShowRender: SHOW_RENDER.ALWAYS
       });
       nv1.attachTo("gl1");
       var volumeList1 = [{ url: "../images/pcasl.nii.gz" }];
       await nv1.loadVolumes(volumeList1);
-      var nv2 = new niivue.Niivue({
+      var nv2 = new Niivue({
         show3Dcrosshair: true,
         onLocationChange: handleIntensityChange2,
         backColor: [1, 1, 1, 1],
         dragMode: 3,
         sliceType: 3,
-        multiplanarShowRender: niivue.SHOW_RENDER.ALWAYS
+        multiplanarShowRender: SHOW_RENDER.ALWAYS
       });
       nv2.attachTo("gl2");
-      var nv3 = new niivue.Niivue({
+      var nv3 = new Niivue({
         show3Dcrosshair: true,
         onLocationChange: handleIntensityChange3,
         backColor: [1, 1, 1, 1],
         dragMode: 3,
         sliceType: 3,
-        multiplanarShowRender: niivue.SHOW_RENDER.ALWAYS
+        multiplanarShowRender: SHOW_RENDER.ALWAYS
       });
       nv3.attachTo("gl3");
       var volumeList2 = [{ url: "../images/mni152.nii.gz" }];

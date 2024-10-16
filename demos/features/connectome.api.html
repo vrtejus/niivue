@@ -52,7 +52,7 @@
 
 </html>
 <script type="module" async>  
-  import * as niivue from "../dist/index.js";
+  import { Niivue } from "../../src/niivue/index.ts";
   
   var addNode = document.getElementById("addNode");
   var deleteNode = document.getElementById("deleteNode");
@@ -182,7 +182,7 @@
     backColor: [0.8, 0.8, 1, 1],
     sliceType: niivue.SLICE_TYPE.RENDER,
   };
-  var nv1 = new niivue.Niivue(opts);
+  var nv1 = new Niivue(opts);
   nv1.attachTo("gl1");
   await nv1.loadVolumes(volumeList1);
   nv1.volumes[0].colorbarVisible = false;

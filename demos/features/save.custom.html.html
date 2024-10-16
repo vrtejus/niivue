@@ -64,7 +64,7 @@
 
 </html>
 <script type="module" async>
-  import * as niivue from "../dist/index.js";
+  import { Niivue } from "../../src/niivue/index.ts";
   import { esm } from "../dist/index.min.js";
   
   document
@@ -427,7 +427,7 @@ div {
   var button = document.getElementById("save");
   button.onclick = saveAsHtml;
   var volumeList1 = [{ url: "../images/FLAIR.nii.gz" }];
-  var nv1 = new niivue.Niivue({
+  var nv1 = new Niivue({
     backColor: [1, 1, 1, 1],
     onLocationChange: handleLocationChange,
   });

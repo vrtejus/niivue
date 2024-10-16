@@ -32,7 +32,7 @@
       </div>
     </section>
     <script type="module">
-      import * as niivue from "../dist/index.js";
+      import { Niivue } from "../../src/niivue/index.ts";
       
       var volumeList1 = [
         {
@@ -54,7 +54,7 @@
           visible: true,
         },
       ];
-      var nv1 = new niivue.Niivue((opts = { trustCalMinMax: false }));
+      var nv1 = new Niivue((opts = { trustCalMinMax: false }));
       nv1.attachTo("gl1");
       nv1.loadVolumes(volumeList1);
       nv1.setSliceType(nv1.sliceTypeMultiplanar);

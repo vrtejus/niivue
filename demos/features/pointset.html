@@ -66,7 +66,7 @@
     </main>
     <footer id="location">&nbsp;</footer>
     <script type="module" async>
-      import * as niivue from "../dist/index.js";
+      import { Niivue } from "../../src/niivue/index.ts";
       import { esm } from "../dist/index.min.js";
       
       save.onclick = function() {
@@ -214,7 +214,7 @@
         show3Dcrosshair: true,
         onLocationChange: handleLocationChange,
       };
-      var nv1 = new niivue.Niivue(defaults);
+      var nv1 = new Niivue(defaults);
       nv1.setRadiologicalConvention(false);
       nv1.attachTo("gl1");
       nv1.setSliceType(nv1.sliceTypeMultiplanar);
