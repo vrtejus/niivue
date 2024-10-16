@@ -126,7 +126,7 @@ export class NVLabelLine implements UIModelComponent, ProjectedScreenObject {
         //     this.backgroundColor as [number, number, number, number]
         // )
         this.backgroundColor = [0.0, 1.0, 0.0, 0.3]
-        this.drawer.drawRoundedRect([startPoint[0], startPoint[1], rectWidth, rectHeight], 0.10, this.backgroundColor as [number, number, number, number], [1.0, 1.0, 1.0, 1.0], 0.01)
+        this.drawer.drawRoundedRect([startPoint[0], startPoint[1], rectWidth, rectHeight], 0.10, this.backgroundColor as [number, number, number, number], [1.0, 1.0, 1.0, 1.0], 0.03)
         // this.drawer.drawRoundedRect([600, 300, 800, 400], 0.1, this.backgroundColor as [number, number, number, number], [1.0, 1.0, 1.0, 1.0], 0.05)
         // this.drawer.drawRoundedRect([startPoint[0], startPoint[1] + rectHeight * 0.25, rectWidth, rectHeight], 20.0, this.backgroundColor as [number, number, number, number], [1.0, 1.0, 1.0, 1.0], 2)
         const descenderDepth = this.font.getDescenderDepth(this.scale, this.text)

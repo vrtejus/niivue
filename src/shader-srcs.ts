@@ -741,45 +741,100 @@ void main(void) {
 }
 
 `
-
 export const fragRoundedRectShader = `#version 300 es
 precision highp float;
 
-in vec2 v_position;           // Normalized position from vertex shader in [-1, 1] space
-uniform float u_roundness;    // Roundness of the corners
-uniform vec4 u_fillColor;     // Fill color (r, g, b, a)
-uniform vec4 u_outlineColor;  // Outline color (r, g, b, a)
-uniform float u_outlineWidth; // Width of the outline
-uniform vec2 u_rectSize;      // Half-size of the rectangle in NDC space
+in vec2 v_position;            // Normalized position from vertex shader in [-1, 1] space
+uniform vec2 u_rectSize;       // Half-size of the rectangle in NDC space
+uniform vec2 u_rectPos;        // Center position of the rectangle in NDC space
+uniform vec4 u_cornerRadii;    // Corner radii for each corner (top-right, top-left, bottom-left, bottom-right)
+
+uniform vec4 u_fillColor;      // Fill color (r, g, b, a)
+uniform vec4 u_outlineColor;   // Outline color (r, g, b, a)
+uniform float u_outlineWidth;  // Width of the outline in NDC units
 
 out vec4 color;
 
-// Helper: Compute the distance to the closest edge of the rounded rectangle
-float sdRoundedRect(vec2 p, vec2 size, float radius) {
-    vec2 q = abs(p) - size + vec2(radius);
-    return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - radius;
+// Function to compute the signed distance to a rounded box with different corner radii
+float sdRoundedBox(in vec2 p, in vec2 b, in vec4 r) {
+    // Determine appropriate radius for each quadrant
+    r.xy = (p.x > 0.0) ? r.xy : r.zw;
+    r.x  = (p.y > 0.0) ? r.x  : r.y;
+
+    // Calculate distance to rounded box
+    vec2 q = abs(p) - b + r.x;
+    return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r.x;
 }
 
 void main() {
-    // Use the v_position directly, as it is already in NDC space and consistent
-    float dist = sdRoundedRect(v_position, u_rectSize, u_roundness);
+    // Transform the v_position to local space with respect to the rectangle center
+    vec2 localPos = v_position - u_rectPos;
 
-    // Smooth anti-aliased edge
+    // Compute the signed distance to the rounded rectangle's boundary
+    float dist = sdRoundedBox(localPos, u_rectSize, u_cornerRadii);
+	if (dist > u_outlineWidth) {
+        // Completely outside the rectangle, should be transparent
+        color = vec4(0.0, 0.0, 0.0, 0.0);
+        return;
+    }
+		
+    // Smooth anti-aliased edge for fill and outline regions
     float edgeSmooth = fwidth(dist);
 
-    // Determine the alpha values for fill and outline
+    // Calculate the alpha values for the outline and fill regions
+    // Outline region: from -u_outlineWidth to 0 (negative because we're outside the rounded rect)
+    float alphaOutline = smoothstep(-u_outlineWidth - edgeSmooth, -u_outlineWidth + edgeSmooth, dist);
+
+    // Fill region: from 0 inward
     float alphaFill = smoothstep(0.0, edgeSmooth, -dist);
-    float alphaOutline = smoothstep(0.0, edgeSmooth, u_outlineWidth - dist);
 
-    // Determine the color based on distance (whether it is in outline or fill)
-    vec4 finalColor = mix(u_outlineColor, u_fillColor, alphaFill);
+    // Combine the outline and fill colors with appropriate blending
+    vec4 outlineColor = u_outlineColor * alphaOutline;
+    vec4 fillColor = u_fillColor * alphaFill;
 
-    // Output the final color with combined alpha
-    color = vec4(finalColor.rgb, finalColor.a * alphaOutline);
+    // Set the final fragment color with outline taking precedence over fill
+    color = mix(fillColor, outlineColor, alphaOutline);
 }
 
-
 `
+// export const fragRoundedRectShader = `#version 300 es
+// precision highp float;
+
+// in vec2 v_position;           // Normalized position from vertex shader in [-1, 1] space
+// uniform float u_roundness;    // Roundness of the corners
+// uniform vec4 u_fillColor;     // Fill color (r, g, b, a)
+// uniform vec4 u_outlineColor;  // Outline color (r, g, b, a)
+// uniform float u_outlineWidth; // Width of the outline
+// uniform vec2 u_rectSize;      // Half-size of the rectangle in NDC space
+
+// out vec4 color;
+
+// // Helper: Compute the distance to the closest edge of the rounded rectangle
+// float sdRoundedRect(vec2 p, vec2 size, float radius) {
+//     vec2 q = abs(p) - size + vec2(radius);
+//     return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - radius;
+// }
+
+// void main() {
+//     // Use the v_position directly, as it is already in NDC space and consistent
+//     float dist = sdRoundedRect(v_position, u_rectSize, u_roundness);
+
+//     // Smooth anti-aliased edge
+//     float edgeSmooth = fwidth(dist);
+
+//     // Determine the alpha values for fill and outline
+//     float alphaFill = smoothstep(0.0, edgeSmooth, -dist);
+//     float alphaOutline = smoothstep(0.0, edgeSmooth, u_outlineWidth - dist);
+
+//     // Determine the color based on distance (whether it is in outline or fill)
+//     vec4 finalColor = mix(u_outlineColor, u_fillColor, alphaFill);
+
+//     // Output the final color with combined alpha
+//     color = vec4(finalColor.rgb, finalColor.a * alphaOutline);
+// }
+
+
+// `
 // export const fragRoundedRectShader = `#version 300 es
 // precision highp float;
 

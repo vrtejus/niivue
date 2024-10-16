@@ -187,14 +187,155 @@ export class NVDrawer {
 
 
 
+    // /**
+    //   * Draws a rounded rectangle.
+    //   * @param leftTopWidthHeight - The bounding box of the rounded rectangle (left, top, width, height).
+    //   * @param roundness - The roundness of the corners.
+    //   * @param fillColor - The fill color of the rectangle.
+    //   * @param outlineColor - The outline color of the rectangle.
+    //   * @param outlineWidth - The width of the outline.
+    //   */
+    // drawRoundedRect(
+    //     leftTopWidthHeight: number[],
+    //     roundness: number,
+    //     fillColor: [number, number, number, number],
+    //     outlineColor: [number, number, number, number],
+    //     outlineWidth = 1.0
+    // ): void {
+    //     if (!NVDrawer.roundedRectShader) {
+    //         throw new Error('roundedRectShader undefined');
+    //     }
+
+    //     const gl = this.gl;
+
+    //     // Use the rounded rectangle shader program
+    //     NVDrawer.roundedRectShader.use(gl);
+
+    //     // Enable blending for transparency
+    //     gl.enable(gl.BLEND);
+    //     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+    //     // Set the necessary uniforms
+    //     const shader = NVDrawer.roundedRectShader;
+
+    //     // Set the roundness of the corners
+    //     // const roundnessLocation = gl.getUniformLocation(shader.program, 'u_roundness');
+    //     // gl.uniform1f(roundnessLocation, roundness);
+    //     // Set corner radii for each corner (in NDC units)
+    //     const radius = 0.02; // Adjust this value as needed for rounded corners
+    //     gl.uniform4fv(NVDrawer.roundedRectShader.uniforms.u_cornerRadii, [radius, radius, radius, radius]);
+
+
+
+    //     // Set the fill color
+    //     const fillColorLocation = gl.getUniformLocation(shader.program, 'u_fillColor');
+    //     gl.uniform4fv(fillColorLocation, fillColor);
+
+    //     // Set the outline color
+    //     // const outlineColorLocation = gl.getUniformLocation(shader.program, 'u_outlineColor');
+    //     // gl.uniform4fv(outlineColorLocation, outlineColor);
+
+    //     // Set the outline width
+    //     const outlineWidthLocation = gl.getUniformLocation(shader.program, 'u_outlineWidth');
+    //     gl.uniform1f(outlineWidthLocation, outlineWidth);
+
+    //     // Set the rectangle position and size (using existing uniform from vertex shader)
+    //     const canvasWidthHeightLocation = gl.getUniformLocation(shader.program, 'canvasWidthHeight');
+    //     gl.uniform2fv(canvasWidthHeightLocation, [gl.canvas.width, gl.canvas.height]);
+
+    //     const leftTopWidthHeightLocation = gl.getUniformLocation(shader.program, 'leftTopWidthHeight');
+    //     gl.uniform4f(
+    //         leftTopWidthHeightLocation,
+    //         leftTopWidthHeight[0],
+    //         leftTopWidthHeight[1],
+    //         leftTopWidthHeight[2],
+    //         leftTopWidthHeight[3]
+    //     );
+
+    //     // Usage example:
+    //     const { u_rectSize, u_roundness, u_outlineWidth } = this.calculateNDCValues(leftTopWidthHeight[2], leftTopWidthHeight[3], gl.canvas.width, gl.canvas.height);
+    //     // const ndcWidth = (2.0 * leftTopWidthHeight[2]) / gl.canvas.width;
+    //     // const ndcHeight = (2.0 * leftTopWidthHeight[3]) / gl.canvas.height;
+    //     // const ndcWidth = 0.80;
+    //     // const ndcHeight = 0.55;
+
+    //     // console.log('Calculated u_rectSize in NDC (half-size):', ndcWidth * 0.5, ndcHeight * 0.5);
+    //     // gl.uniform2f(NVDrawer.roundedRectShader.uniforms.u_rectSize, ndcWidth * 0.5, ndcHeight * 0.5);
+    //     // console.log('Calculated u_rectSize (NDC half-size):', u_rectSize);
+    //     // Get device pixel ratio
+    //     // const dpr = window.devicePixelRatio || 1;
+
+    //     // // Adjust canvas resolution
+    //     // const canvas = gl.canvas;
+    //     // if (canvas instanceof HTMLCanvasElement) {
+    //     //     console.log('canvas element with ', dpr)
+    //     //     canvas.width = Math.floor(canvas.clientWidth * dpr);
+    //     //     canvas.height = Math.floor(canvas.clientHeight * dpr);
+    //     // }
+
+    //     // // Update the viewport to match the canvas size
+    //     // gl.viewport(0, 0, canvas.width, canvas.height);
+
+    //     // // Convert rectangle dimensions to NDC
+    //     // const ndcWidth = (2.0 * leftTopWidthHeight[2]) / canvas.width;
+    //     // const ndcHeight = (2.0 * leftTopWidthHeight[3]) / canvas.height;
+    //     // console.log('ndc values', ndcWidth, ndcHeight)
+
+
+    //     // Set the uniforms for the shader
+    //     // gl.uniform2f(NVDrawer.roundedRectShader.uniforms.u_rectSize, u_rectSize[0], u_rectSize[1] * 4);
+    //     // Calculate the NDC width and height based on actual canvas size
+    //     const dpr = window.devicePixelRatio || 1;
+    //     const canvas = gl.canvas;
+
+    //     canvas.width = Math.floor((canvas as HTMLCanvasElement).clientWidth * dpr);
+    //     canvas.height = Math.floor((canvas as HTMLCanvasElement).clientHeight * dpr);
+    //     gl.viewport(0, 0, canvas.width, canvas.height);
+
+    //     // Canvas dimensions
+    //     const canvasWidth = canvas.width;
+    //     const canvasHeight = canvas.height;
+
+    //     // Rectangle properties (left, top, width, height)
+
+    //     // Calculate NDC position of the top-left corner
+    //     const ndcX = (2 * leftTopWidthHeight[0] / canvasWidth) - 1;
+    //     const ndcY = 1 - (2 * leftTopWidthHeight[1] / canvasHeight);
+
+    //     // Convert width and height to NDC
+    //     const ndcWidth = (2 * leftTopWidthHeight[2]) / canvasWidth;
+    //     const ndcHeight = (2 * leftTopWidthHeight[3]) / canvasHeight;
+
+    //     // Set uniforms for the shader
+    //     const u_rectPos = [ndcX + ndcWidth / 2, ndcY - ndcHeight / 2]; // Center position in NDC
+    //     // const u_rectSize1 = [ndcWidth / 2, ndcHeight / 2]; // Half-size in NDC
+
+    //     gl.uniform2f(NVDrawer.roundedRectShader.uniforms.u_rectPos, u_rectPos[0], u_rectPos[1]);
+    //     gl.uniform2f(NVDrawer.roundedRectShader.uniforms.u_rectSize, u_rectSize[0], u_rectSize[1]);
+    //     // Set the outline width in NDC units
+    //     const outlineWidth1 = Math.min(u_rectSize[0], u_rectSize[1]) * 0.05; // Adjust for visible outline
+    //     gl.uniform1f(NVDrawer.roundedRectShader.uniforms.u_outlineWidth, outlineWidth1);
+    //     // gl.uniform2f(NVDrawer.roundedRectShader.uniforms.u_rectSize, u_rectSize[0], u_rectSize[1] * 4);
+    //     // gl.uniform1f(NVDrawer.roundedRectShader.uniforms.u_roundness, u_roundness);
+    //     // gl.uniform1f(NVDrawer.roundedRectShader.uniforms.u_outlineWidth, u_outlineWidth);
+
+    //     // Bind the VAO that contains the vertex data and attribute pointers
+    //     gl.bindVertexArray(NVDrawer.genericVAO);
+
+    //     // Draw the rounded rectangle using TRIANGLE_STRIP (assuming this VAO holds the appropriate vertex data)
+    //     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    //     // Unbind the VAO to avoid accidental modification
+    //     gl.bindVertexArray(null);
+    // }
     /**
-      * Draws a rounded rectangle.
-      * @param leftTopWidthHeight - The bounding box of the rounded rectangle (left, top, width, height).
-      * @param roundness - The roundness of the corners.
-      * @param fillColor - The fill color of the rectangle.
-      * @param outlineColor - The outline color of the rectangle.
-      * @param outlineWidth - The width of the outline.
-      */
+ * Draws a rounded rectangle.
+ * @param leftTopWidthHeight - The bounding box of the rounded rectangle (left, top, width, height).
+ * @param roundness - The roundness of the corners.
+ * @param fillColor - The fill color of the rectangle.
+ * @param outlineColor - The outline color of the rectangle.
+ * @param outlineWidth - The width of the outline.
+ */
     drawRoundedRect(
         leftTopWidthHeight: number[],
         roundness: number,
@@ -219,8 +360,8 @@ export class NVDrawer {
         const shader = NVDrawer.roundedRectShader;
 
         // Set the roundness of the corners
-        const roundnessLocation = gl.getUniformLocation(shader.program, 'u_roundness');
-        gl.uniform1f(roundnessLocation, roundness);
+        const radius = 0.02; // Adjust this value as needed for rounded corners
+        gl.uniform4fv(NVDrawer.roundedRectShader.uniforms.u_cornerRadii, [radius, radius, radius, radius]);
 
         // Set the fill color
         const fillColorLocation = gl.getUniformLocation(shader.program, 'u_fillColor');
@@ -230,9 +371,7 @@ export class NVDrawer {
         const outlineColorLocation = gl.getUniformLocation(shader.program, 'u_outlineColor');
         gl.uniform4fv(outlineColorLocation, outlineColor);
 
-        // Set the outline width
-        const outlineWidthLocation = gl.getUniformLocation(shader.program, 'u_outlineWidth');
-        gl.uniform1f(outlineWidthLocation, outlineWidth);
+
 
         // Set the rectangle position and size (using existing uniform from vertex shader)
         const canvasWidthHeightLocation = gl.getUniformLocation(shader.program, 'canvasWidthHeight');
@@ -247,55 +386,39 @@ export class NVDrawer {
             leftTopWidthHeight[3]
         );
 
-        // Usage example:
-        const { u_rectSize, u_roundness, u_outlineWidth } = this.calculateNDCValues(leftTopWidthHeight[2], leftTopWidthHeight[3], gl.canvas.width, gl.canvas.height);
-        // const ndcWidth = (2.0 * leftTopWidthHeight[2]) / gl.canvas.width;
-        // const ndcHeight = (2.0 * leftTopWidthHeight[3]) / gl.canvas.height;
-        // const ndcWidth = 0.80;
-        // const ndcHeight = 0.55;
-
-        // console.log('Calculated u_rectSize in NDC (half-size):', ndcWidth * 0.5, ndcHeight * 0.5);
-        // gl.uniform2f(NVDrawer.roundedRectShader.uniforms.u_rectSize, ndcWidth * 0.5, ndcHeight * 0.5);
-        // console.log('Calculated u_rectSize (NDC half-size):', u_rectSize);
-        // Get device pixel ratio
-        // const dpr = window.devicePixelRatio || 1;
-
-        // // Adjust canvas resolution
-        // const canvas = gl.canvas;
-        // if (canvas instanceof HTMLCanvasElement) {
-        //     console.log('canvas element with ', dpr)
-        //     canvas.width = Math.floor(canvas.clientWidth * dpr);
-        //     canvas.height = Math.floor(canvas.clientHeight * dpr);
-        // }
-
-        // // Update the viewport to match the canvas size
-        // gl.viewport(0, 0, canvas.width, canvas.height);
-
-        // // Convert rectangle dimensions to NDC
-        // const ndcWidth = (2.0 * leftTopWidthHeight[2]) / canvas.width;
-        // const ndcHeight = (2.0 * leftTopWidthHeight[3]) / canvas.height;
-        // console.log('ndc values', ndcWidth, ndcHeight)
-
-
-        // Set the uniforms for the shader
-        // gl.uniform2f(NVDrawer.roundedRectShader.uniforms.u_rectSize, u_rectSize[0], u_rectSize[1] * 4);
         // Calculate the NDC width and height based on actual canvas size
         const dpr = window.devicePixelRatio || 1;
-        const canvasWidth = (gl.canvas as HTMLCanvasElement).clientWidth * dpr; // Actual width in pixels
-        const canvasHeight = (gl.canvas as HTMLCanvasElement).clientHeight * dpr; // Actual height in pixels
+        const canvas = gl.canvas;
 
-        const ndcWidth = (2.0 * leftTopWidthHeight[2]) / canvasWidth;
-        const ndcHeight = (2.0 * leftTopWidthHeight[3]) / canvasHeight;
+        canvas.width = Math.floor((canvas as HTMLCanvasElement).clientWidth * dpr);
+        canvas.height = Math.floor((canvas as HTMLCanvasElement).clientHeight * dpr);
+        gl.viewport(0, 0, canvas.width, canvas.height);
 
-        // Set u_rectSize with calculated values
-        const u_rectSize2 = [ndcWidth * 0.5, ndcHeight * 0.5];
+        // Canvas dimensions
+        const canvasWidth = canvas.width;
+        const canvasHeight = canvas.height;
 
-        // Set uniform values
-        gl.uniform2f(NVDrawer.roundedRectShader.uniforms.u_rectSize, u_rectSize2[0], u_rectSize2[1] * 3.5);
+        // Calculate NDC position of the top-left corner
+        const ndcX = (2 * leftTopWidthHeight[0] / canvasWidth) - 1;
+        const ndcY = 1 - (2 * leftTopWidthHeight[1] / canvasHeight);
 
-        // gl.uniform2f(NVDrawer.roundedRectShader.uniforms.u_rectSize, u_rectSize[0], u_rectSize[1] * 4);
-        gl.uniform1f(NVDrawer.roundedRectShader.uniforms.u_roundness, u_roundness);
-        gl.uniform1f(NVDrawer.roundedRectShader.uniforms.u_outlineWidth, u_outlineWidth);
+        // Convert width and height to NDC
+        const ndcWidth = (2 * leftTopWidthHeight[2]) / canvasWidth;
+        const ndcHeight = (2 * leftTopWidthHeight[3]) / canvasHeight;
+
+        // Set uniforms for the shader
+        const u_rectPos = [ndcX + ndcWidth / 2, ndcY - ndcHeight / 2]; // Center position in NDC
+        gl.uniform2f(NVDrawer.roundedRectShader.uniforms.u_rectPos, u_rectPos[0], u_rectPos[1]);
+        gl.uniform2f(NVDrawer.roundedRectShader.uniforms.u_rectSize, ndcWidth / 2, ndcHeight / 2);
+
+        // Set the outline width in NDC units
+        const outlineWidthNDC = Math.min(ndcWidth, ndcHeight) * 0.05; // Adjust for visible outline
+        gl.uniform1f(NVDrawer.roundedRectShader.uniforms.u_outlineWidth, outlineWidthNDC);
+
+        // Set the outline width
+        const u_outlineWidth = Math.min(ndcWidth, ndcHeight) * 0.03; // Example: 5% of the smallest dimension
+        const outlineWidthLocation = gl.getUniformLocation(shader.program, 'u_outlineWidth');
+        gl.uniform1f(outlineWidthLocation, u_outlineWidth);
 
         // Bind the VAO that contains the vertex data and attribute pointers
         gl.bindVertexArray(NVDrawer.genericVAO);
@@ -306,7 +429,6 @@ export class NVDrawer {
         // Unbind the VAO to avoid accidental modification
         gl.bindVertexArray(null);
     }
-
 
     /**
      * Draws a triangle.
