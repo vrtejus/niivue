@@ -65,7 +65,7 @@ export class NVLabelLine implements UIModelComponent, ProjectedScreenObject {
 
     // Getters for the width and height of the label and its enclosing rectangle
     getScreenWidth(): number {
-        return this.font.getTextWidth(this.scale, this.text) + 2 * this.margin
+        return this.font.getTextWidth(this.scale, this.text) + 2 * this.margin + 2 * this.font.getTextHeight(this.scale, this.text)
     }
 
     getScreenHeight(): number {
@@ -120,21 +120,16 @@ export class NVLabelLine implements UIModelComponent, ProjectedScreenObject {
             this.color as [number, number, number, number]
         )
 
-        // Render the background rect at the start point
-        // this.drawer.drawRect(
-        //     [startPoint[0], startPoint[1], rectWidth, rectHeight],
-        //     this.backgroundColor as [number, number, number, number]
-        // )
-        this.backgroundColor = [0.0, 1.0, 0.0, 0.3]
-        this.drawer.drawRoundedRect([startPoint[0], startPoint[1], rectWidth, rectHeight], 0.10, this.backgroundColor as [number, number, number, number], [1.0, 1.0, 1.0, 1.0], 0.03)
+        this.drawer.drawStadium([startPoint[0], startPoint[1], rectWidth, rectHeight], 0.10, this.backgroundColor as [number, number, number, number], this.color as [number, number, number, number], 0.03)
         // this.drawer.drawRoundedRect([600, 300, 800, 400], 0.1, this.backgroundColor as [number, number, number, number], [1.0, 1.0, 1.0, 1.0], 0.05)
         // this.drawer.drawRoundedRect([startPoint[0], startPoint[1] + rectHeight * 0.25, rectWidth, rectHeight], 20.0, this.backgroundColor as [number, number, number, number], [1.0, 1.0, 1.0, 1.0], 2)
         const descenderDepth = this.font.getDescenderDepth(this.scale, this.text)
         console.log('descender depth', descenderDepth)
         // Adjust the position of the text with a margin, ensuring it's vertically centered
+        const textHeight = this.font.getTextHeight(this.scale, this.text)
         const textPosition = [
-            this.screenPosition[0] + this.margin,
-            this.screenPosition[1] + this.margin + descenderDepth
+            this.screenPosition[0] + this.margin + textHeight,
+            this.screenPosition[1] + this.margin - textHeight / 2 - descenderDepth
         ]
 
         // Render the text

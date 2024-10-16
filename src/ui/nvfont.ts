@@ -191,6 +191,25 @@ export class NVFont {
         return scale * minBottom * this.gl.canvas.height * this.textHeight
     }
 
+    public getAscenderHeight(scale: number, str: string): number {
+        if (!str) {
+            return 0
+        }
+
+        let maxTop = 0
+        const bytes = new TextEncoder().encode(str)
+
+        for (let i = 0; i < bytes.length; i++) {
+            const glyph = this.fontMets!.mets[bytes[i]]
+            if (glyph) {
+                const top = glyph.lbwh[1] + glyph.lbwh[3]
+                maxTop = Math.max(maxTop, top)
+            }
+        }
+
+        return scale * maxTop * this.gl.canvas.height * this.textHeight
+    }
+
     public getTextHeight(scale: number, str: string): number {
         if (!str) {
             return 0
