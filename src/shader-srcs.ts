@@ -719,6 +719,84 @@ void main() {
 	color = lineColor;
 }`
 
+export const fragRoundRectShader = `#version 300 es
+precision highp int;
+precision highp float;
+
+uniform vec4 fillColor;
+uniform vec4 borderColor;
+uniform vec4 leftTopWidthHeight; // x, y, width, height
+uniform float thickness; // line thickness in pixels
+uniform float cornerRadius; // also in pixels
+uniform vec2 canvasWidthHeight;
+
+out vec4 color;
+
+void main() {
+    // fragment position in screen coordinates
+    vec2 fragCoord = gl_FragCoord.xy;
+
+    // canvas height
+    float canvasHeight = canvasWidthHeight.y;
+
+    // 'top' and 'bottom' to match gl_FragCoord.y coordinate system
+    float top = canvasHeight - leftTopWidthHeight.y;
+    float bottom = top - leftTopWidthHeight.w;
+
+    // left and right edges
+    float left = leftTopWidthHeight.x;
+    float right = left + leftTopWidthHeight.z;
+
+    // Corner positions
+    vec2 topLeft = vec2(left + cornerRadius, top - cornerRadius);
+    vec2 topRight = vec2(right - cornerRadius, top - cornerRadius);
+    vec2 bottomLeft = vec2(left + cornerRadius, bottom + cornerRadius);
+    vec2 bottomRight = vec2(right - cornerRadius, bottom + cornerRadius);
+
+    // Distance function for rounded rectangle
+    vec2 innerCoord = fragCoord;
+    vec2 cornerDir;
+    float dist = 0.0;
+    bool inCorner = false;
+
+    // Determine distance based on the corner radius
+    if (fragCoord.x < left + cornerRadius && fragCoord.y > top - cornerRadius) {
+        cornerDir = fragCoord - topLeft;
+        dist = length(cornerDir) - cornerRadius;
+        inCorner = true;
+    } else if (fragCoord.x > right - cornerRadius && fragCoord.y > top - cornerRadius) {
+        cornerDir = fragCoord - topRight;
+        dist = length(cornerDir) - cornerRadius;
+        inCorner = true;
+    } else if (fragCoord.x < left + cornerRadius && fragCoord.y < bottom + cornerRadius) {
+        cornerDir = fragCoord - bottomLeft;
+        dist = length(cornerDir) - cornerRadius;
+        inCorner = true;
+    } else if (fragCoord.x > right - cornerRadius && fragCoord.y < bottom + cornerRadius) {
+        cornerDir = fragCoord - bottomRight;
+        dist = length(cornerDir) - cornerRadius;
+        inCorner = true;
+    } else {
+        // Otherwise, just calculate based on straight lines
+        dist = max(max(left - fragCoord.x, fragCoord.x - right), max(bottom - fragCoord.y, fragCoord.y - top));
+    }
+
+    // Calculate derivatives for anti-aliasing (feathering)
+    float aa = length(vec2(dFdx(dist), dFdy(dist)));
+
+    // Check if we are in the corner region, discard if outside rounded corner
+    if (inCorner && dist > aa) {
+        discard;
+    }
+
+    // Feather the border
+    float edgeAlpha = smoothstep(-aa, aa, dist + thickness * 0.5) - smoothstep(-aa, aa, dist - thickness * 0.5);
+
+    // Final color blending for border and fill with feathering
+    vec4 finalColor = mix(fillColor, borderColor, edgeAlpha);
+    color = finalColor;
+}`
+
 export const fragRectOutlineShader = `#version 300 es
 #line 723
 precision highp int;
@@ -734,7 +812,6 @@ out vec4 color;
 void main() {
     // fragment position in screen coordinates
     vec2 fragCoord = gl_FragCoord.xy;
-
     // canvas height
     float canvasHeight = canvasWidthHeight.y;
 

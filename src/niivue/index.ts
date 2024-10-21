@@ -12,6 +12,7 @@ import {
   vertLineShader,
   vertLine3DShader,
   fragRectShader,
+  fragRoundRectShader,
   fragRectOutlineShader,
   vertRenderShader,
   fragRenderShader,
@@ -365,6 +366,7 @@ export class Niivue {
   orientCubeShaderVAO: WebGLVertexArrayObject | null = null
   rectShader?: Shader
   rectOutlineShader?: Shader
+  roundRectShader?: Shader
   renderShader?: Shader
   lineShader?: Shader
   line3DShader?: Shader
@@ -5731,6 +5733,9 @@ export class Niivue {
     this.rectShader.use(gl)
     this.rectOutlineShader = new Shader(gl, vertRectShader, fragRectOutlineShader)
     this.rectOutlineShader.use(gl)
+    
+    this.roundRectShader = new Shader(gl, vertRectShader, fragRoundRectShader)
+    this.roundRectShader.use(gl)
     // line shader: diagonal lines
     this.lineShader = new Shader(gl, vertLineShader, fragRectShader)
     this.lineShader.use(gl)
@@ -8080,6 +8085,48 @@ export class Niivue {
     }
   }
 
+  drawRoundRect(): void {
+      const borderColor = [1, 0, 1, 1]
+      const fillColor = [0, 1, 0, 1]
+      const leftTopWidthHeight = [20, 60, 200, 60]
+      const thickness = 10;
+      const cornerRadius = thickness * 2
+      this.roundRectShader.use(this.gl)
+      this.gl.enable(this.gl.BLEND)
+      // set thickness of line
+      this.gl.uniform1f(this.roundRectShader.uniforms.thickness, thickness)
+      this.gl.uniform1f(this.roundRectShader.uniforms.cornerRadius, cornerRadius)
+      this.gl.uniform4fv(this.roundRectShader.uniforms.borderColor, borderColor)
+      this.gl.uniform4fv(this.roundRectShader.uniforms.fillColor, fillColor)
+      this.gl.uniform2fv(this.roundRectShader.uniforms.canvasWidthHeight, [
+        this.gl.canvas.width,
+        this.gl.canvas.height
+      ])
+      this.gl.uniform4fv(
+        this.roundRectShader.uniforms.leftTopWidthHeight,
+        leftTopWidthHeight
+      )
+      this.gl.bindVertexArray(this.genericVAO)
+      this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4)
+      this.gl.bindVertexArray(this.unusedVAO)
+  }
+  
+  drawRoundRectX(): void {
+    if (!this.roundRectShader) {
+      throw new Error('roundRectShader undefined')
+    }
+    const startXYendXY = [20, 60, 200, 60]
+    this.gl.bindVertexArray(this.genericVAO)
+    this.roundRectShader.use(this.gl)
+    this.gl.uniform4fv(this.roundRectShader.uniforms.lineColor, this.opts.rulerColor)
+    this.gl.uniform2fv(this.roundRectShader.uniforms.canvasWidthHeight, [this.gl.canvas.width, this.gl.canvas.height])
+    // draw Line
+    this.gl.uniform1f(this.roundRectShader.uniforms.thickness, 50)
+    this.gl.uniform4fv(this.roundRectShader.uniforms.startXYendXY, startXYendXY)
+    this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4)
+    this.gl.bindVertexArray(this.unusedVAO) // set vertex attributes
+  }
+  
   // not included in public docs
   // draw 10cm ruler on a 2D tile
   drawRuler(): void {
@@ -11505,6 +11552,7 @@ export class Niivue {
     if (this.opts.isRuler) {
       this.drawRuler()
     }
+    this.drawRoundRect()
     if (this.opts.isColorbar) {
       this.drawColorbar()
     }
