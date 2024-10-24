@@ -9511,7 +9511,9 @@ export class Niivue {
       graph.lineColor = [0, 0, 0, 1]
     }
     graph.textColor = graph.lineColor.slice()
-    graph.lineThickness = 4
+    // issue1088
+    const mnPx = Math.min(graph.LTWH[2], graph.LTWH[3])
+    graph.lineThickness = Math.max(Math.round(mnPx / 192), 1)
     graph.lineAlpha = 1
     graph.lines = []
     const vols = []
@@ -9572,13 +9574,35 @@ export class Niivue {
         mx = Math.max(v, mx)
       }
     }
+    // full range before being clamped
+    const fullMn = mn
+    const fullMx = mx
     const volMn = this.volumes[vols[0]].cal_min
     const volMx = this.volumes[vols[0]].cal_max
     if (graph.isRangeCalMinMax && volMn < volMx && isFinite(volMn) && isFinite(volMx)) {
       mn = volMn
       mx = volMx
     }
-
+    let isYAxisClamped = false
+    const yAxisClamped = graph.lines.map((subArray) => subArray.map(() => 0))
+    if (fullMn < mn || fullMx > mx) {
+      // issue1086
+      isYAxisClamped = true
+      for (let j = 0; j < graph.lines.length; j++) {
+        for (let i = 0; i < graph.lines[j].length; i++) {
+          let v = graph.lines[j][i]
+          if (v > mx) {
+            yAxisClamped[j][i] = 1
+            v = mx
+          }
+          if (v < mn) {
+            yAxisClamped[j][i] = -1
+            v = mn
+          }
+          graph.lines[j][i] = v
+        }
+      }
+    }
     if (graph.normalizeValues && mx > mn) {
       const range = mx - mn
       for (let j = 0; j < graph.lines.length; j++) {
@@ -9704,6 +9728,27 @@ export class Niivue {
           plotLTWH[1] + plotLTWH[3] - y1
         ]
         this.drawLine(LTWH, graph.lineThickness, lineRGBA)
+      }
+    }
+    if (isYAxisClamped) {
+      // issue1086
+      const markerW = Math.max(Math.round(scaleW - 1), 1)
+      const markerH = graph.lineThickness * 2
+      for (let j = 0; j < graph.lines.length; j++) {
+        const lineRGBA = [1, 0, 0, graph.lineAlpha]
+        for (let i = 0; i < graph.lines[j].length; i++) {
+          const x = i * scaleW + plotLTWH[0]
+          if (yAxisClamped[j][i] > 0) {
+            // console.log('clamp high')
+            this.drawRect([x - markerW, plotLTWH[1] - markerH, markerW * 2, markerH * 2], lineRGBA)
+          }
+          if (yAxisClamped[j][i] < 0) {
+            console.log('mork clamp low', x)
+            this.drawRect([x - markerW, plotLTWH[1] + plotLTWH[3] - markerH, markerW * 2, markerH * 2], lineRGBA)
+            // leftTopWidthHeight
+            // this.drawLine([x, plotLTWH[1], x, plotLTWH[1] + plotLTWH[3]], graph.lineThickness, lineRGBA)
+          }
+        }
       }
     }
     // draw vertical line indicating selected volume
@@ -10723,9 +10768,6 @@ export class Niivue {
     padPixelsWH: [number, number] = [0, 0],
     canvasWH: [number, number] = [0, 0]
   ): number[] {
-    // mork
-    // const canvasW = this.effectiveCanvasWidth() - padPixelsWH[0]
-    // const canvasH = this.effectiveCanvasHeight() - padPixelsWH[1]
     const canvasW = canvasWH[0] === 0 ? this.effectiveCanvasWidth() - padPixelsWH[0] : canvasWH[0] - padPixelsWH[0]
     const canvasH = canvasWH[1] === 0 ? this.effectiveCanvasHeight() - padPixelsWH[1] : canvasWH[1] - padPixelsWH[1]
     let scalePix = canvasW / w
