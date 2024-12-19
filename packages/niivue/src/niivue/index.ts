@@ -64,8 +64,10 @@ import { orientCube } from '../orientCube.js'
 import { NiivueObject3D } from '../niivue-object3D.js'
 import { LoadFromUrlParams, MeshType, NVMesh, NVMeshLayer } from '../nvmesh.js'
 import defaultMatCap from '../matcaps/Shiny.jpg'
-import defaultFontPNG from '../fonts/Roboto-Regular.png'
-import defaultFontMetrics from '../fonts/Roboto-Regular.json'
+//import defaultFontPNG from '../fonts/Roboto-Regular.png'
+//import defaultFontMetrics from '../fonts/Roboto-Regular.json'
+import defaultFontPNG from '../fonts/FiraSans-Regular.png'
+import defaultFontMetrics from '../fonts/FiraSans-Regular.json'
 import { ColorMap, cmapper } from '../colortables.js'
 import {
   NVDocument,
