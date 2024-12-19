@@ -8747,6 +8747,7 @@ export class Niivue {
     let screenPxRange = (size / this.fontMets!.size) * this.fontMets!.distanceRange
     screenPxRange = Math.max(screenPxRange, 1.0) // screenPxRange() must never be lower than 1
     this.gl.uniform1f(this.fontShader.uniforms.screenPxRange, screenPxRange)
+    this.gl.uniform1i(this.fontShader.uniforms.isOutline, this.opts.fontOutline!)
     const bytes = new TextEncoder().encode(str)
     this.gl.bindVertexArray(this.genericVAO)
     for (let i = 0; i < str.length; i++) {

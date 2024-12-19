@@ -884,25 +884,6 @@ void main(void) {
 	vUV = vec2(uvLeftTopWidthHeight.x + (pos.x * uvLeftTopWidthHeight.z), uvLeftTopWidthHeight.y  + ((1.0 - pos.y) * uvLeftTopWidthHeight.w) );
 }`
 
-export const fragFontShaderOld = `#version 300 es
-#line 593
-precision highp int;
-precision highp float;
-uniform highp sampler2D fontTexture;
-uniform vec4 fontColor;
-uniform float screenPxRange;
-in vec2 vUV;
-out vec4 color;
-float median(float r, float g, float b) {
-	return max(min(r, g), min(max(r, g), b));
-}
-void main() {
-	vec3 msd = texture(fontTexture, vUV).rgb;
-	float sd = median(msd.r, msd.g, msd.b);
-	float screenPxDistance = screenPxRange*(sd - 0.5);
-	float opacity = clamp(screenPxDistance + 0.5, 0.0, 1.0);
-	color = vec4(fontColor.rgb , fontColor.a * opacity);
-}`
 
 export const fragFontShader = `#version 300 es
 #line 593
@@ -911,144 +892,36 @@ precision highp float;
 uniform highp sampler2D fontTexture;
 uniform vec4 fontColor;
 uniform float screenPxRange;
+uniform bool isOutline;
 in vec2 vUV;
 out vec4 color;
 float median(float r, float g, float b) {
 	return max(min(r, g), min(max(r, g), b));
 }
 void main() {
-	float u_rounded_fonts = 0.0;
-	float u_rounded_outlines = 0.0;
-	float u_threshold = 0.5;
-	float u_out_bias = 0.25;
-	float u_outline_width_absolute = 0.33333;
-	float u_outline_width_relative = 0.05;
-	float u_outline_blur = 0.0;
-	float u_gradient = 0.0;
-	float u_gamma = 1.0;
 	// distances are stored with 1.0 meaning "inside" and 0.0 meaning "outside"
 	vec4 distances = texture(fontTexture, vUV);
 	float d_msdf = median(distances.r, distances.g, distances.b);
+	if (!isOutline) {
+		float screenPxDistance = screenPxRange * (d_msdf - 0.5);
+		float opacity = clamp(screenPxDistance + 0.5, 0.0, 1.0);
+		color = vec4(fontColor.rgb , fontColor.a * opacity);
+		return;
+	}
+	float u_outline_width_absolute = 0.33333;
+	float u_outline_width_relative = 0.05;
 	float d_sdf = distances.a; // mtsdf format only
 	d_msdf = min(d_msdf, d_sdf + 0.1);  // HACK: to fix glitch in msdf near edges
 	// blend between sharp and rounded corners
-	float d_inner = mix(d_msdf, d_sdf, u_rounded_fonts);
-	float d_outer = mix(d_msdf, d_sdf, u_rounded_outlines);
-	// typically 0.5 is the threshold, >0.5 inside <0.5 outside
-	float inverted_threshold = 1.0 - u_threshold; // because I want the ui to be +larger -smaller
-	float width = screenPxRange;
-	float inner = width * (d_inner - inverted_threshold) + 0.5 + u_out_bias;
-	float outer = width * (d_outer - inverted_threshold + u_outline_width_relative) + 0.5 + u_out_bias + u_outline_width_absolute;
+	float d_edge = mix(d_msdf, d_sdf, 0.0);
+	float inner = screenPxRange * (d_edge - 0.5) + 0.75;
+	float outer = screenPxRange * (d_edge - 0.5 + u_outline_width_relative) + 0.75 + u_outline_width_absolute;
 	float inner_opacity = clamp(inner, 0.0, 1.0);
 	//vec4 inner_color = vec4(1, 1, 1, 1);
-	vec4 inner_color = vec4(fontColor.rgb, 1.0);
 	float outer_opacity = clamp(outer, 0.0, 1.0);
-	vec4 outer_color = vec4(0, 0, 0, 1);
-	if (u_outline_blur > 0.0) {
-		// NOTE: the smoothstep fails when the two edges are the same, and I wish it
-		// would act like a step function instead of failing.
-		// NOTE: I'm using d_sdf here because I want the shadows to be rounded
-		// even when outlines are sharp. But I don't yet have implemented a way
-		// to see the sharp outline with a rounded shadow.
-		float blur_start = u_outline_width_relative + u_outline_width_absolute / width;
-		outer_color.a = smoothstep(blur_start,
-															 blur_start * (1.0 - u_outline_blur),
-															 inverted_threshold - d_sdf - u_out_bias / width);
-	}
-	// apply some lighting (hard coded angle)
-	if (u_gradient > 0.0) {
-		 // NOTE: this is not a no-op so it changes the rendering even when
-		 // u_gradient is 0.0. So I use an if() instead. But ideally I'd
-		 // make this do nothing when u_gradient is 0.0.
-		 vec2 normal = normalize(vec3(dFdx(d_inner), dFdy(d_inner), 0.01)).xy;
-		 float light = 0.5 * (1.0 + dot(normal, normalize(vec2(-0.3, -0.5))));
-		 inner_color = mix(inner_color, vec4(light, light, light, 1),
-											 smoothstep(u_gradient + inverted_threshold, inverted_threshold, d_inner));
-	}
-	// unlike in the 2403 experiments, I do know the color is light
-	// and the shadow is dark so I can implement gamma correction
-	inner_opacity = pow(inner_opacity, 1.0 / u_gamma);
-	
-	color = (inner_color * inner_opacity) + (outer_color * (outer_opacity - inner_opacity));
-}`
-
-export const fragFontShaderY = `#version 300 es
-#line 908
-in vec2 v_texcoord;
-uniform highp sampler2D u_mtsdf_font;
-uniform float screenPxRange;
-//uniform vec2 u_unit_range;
-// u_unit_range: [sdf_distance_range / atlas.scaleW, sdf_distance_range / atlas.scaleH],
-/* sample code from https://github.com/Chlumsky/msdfgen */
-float median(float r, float g, float b) {
-  return max(min(r, g), min(max(r, g), b));
-}
-
-/*float screenPxRange() {
-  vec2 screenTexSize =  vec2(1.0) / fwidth(v_texcoord);
-  return max(0.5 * dot(u_unit_range, screenTexSize), 1.0);
-}*/
-
-void main() {
-  float u_rounded_fonts = 0.0;
-  float u_rounded_outlines = 0.0;
-  float u_threshold = 0.5;
-  float u_out_bias = 0.25;
-  float u_outline_width_absolute = 0.33333;
-  float u_outline_width_relative = 0.05;
-  float u_outline_blur = 0.0;
-  float u_gradient = 0.0;
-  float u_gamma = 1.0;
-  // distances are stored with 1.0 meaning "inside" and 0.0 meaning "outside"
-  vec4 distances = texture2D(u_mtsdf_font, v_texcoord);
-  float d_msdf = median(distances.r, distances.g, distances.b);
-  float d_sdf = distances.a; // mtsdf format only
-  d_msdf = min(d_msdf, d_sdf + 0.1);  // HACK: to fix glitch in msdf near edges
-
-  // blend between sharp and rounded corners
-  float d_inner = mix(d_msdf, d_sdf, u_rounded_fonts);
-  float d_outer = mix(d_msdf, d_sdf, u_rounded_outlines);
-
-  // typically 0.5 is the threshold, >0.5 inside <0.5 outside
-  float inverted_threshold = 1.0 - u_threshold; // because I want the ui to be +larger -smaller
-  float width = screenPxRange();
-  float inner = width * (d_inner - inverted_threshold) + 0.5 + u_out_bias;
-  float outer = width * (d_outer - inverted_threshold + u_outline_width_relative) + 0.5 + u_out_bias + u_outline_width_absolute;
-
-  float inner_opacity = clamp(inner, 0.0, 1.0);
-  vec4 inner_color = vec4(1, 1, 1, 1);
-  float outer_opacity = clamp(outer, 0.0, 1.0);
-  vec4 outer_color = vec4(0, 0, 0, 1);
-
-  if (u_outline_blur > 0.0) {
-    // NOTE: the smoothstep fails when the two edges are the same, and I wish it
-    // would act like a step function instead of failing.
-    // NOTE: I'm using d_sdf here because I want the shadows to be rounded
-    // even when outlines are sharp. But I don't yet have implemented a way
-    // to see the sharp outline with a rounded shadow.
-    float blur_start = u_outline_width_relative + u_outline_width_absolute / width;
-    outer_color.a = smoothstep(blur_start,
-                               blur_start * (1.0 - u_outline_blur),
-                               inverted_threshold - d_sdf - u_out_bias / width);
-  }
-
-  // apply some lighting (hard coded angle)
-  if (u_gradient > 0.0) {
-     // NOTE: this is not a no-op so it changes the rendering even when
-     // u_gradient is 0.0. So I use an if() instead. But ideally I'd
-     // make this do nothing when u_gradient is 0.0.
-     vec2 normal = normalize(vec3(dFdx(d_inner), dFdy(d_inner), 0.01)).xy;
-     float light = 0.5 * (1.0 + dot(normal, normalize(vec2(-0.3, -0.5))));
-     inner_color = mix(inner_color, vec4(light, light, light, 1),
-                       smoothstep(u_gradient + inverted_threshold, inverted_threshold, d_inner));
-  }
-
-  // unlike in the 2403 experiments, I do know the color is light
-  // and the shadow is dark so I can implement gamma correction
-  inner_opacity = pow(inner_opacity, 1.0 / u_gamma);
-
-  vec4 color = (inner_color * inner_opacity) + (outer_color * (outer_opacity - inner_opacity));
-  gl_FragColor = color;
+	// make the outline white for dark text and black for bright text
+	vec4 outer_color = vec4(vec3(1.0 - step(0.1, length(fontColor.rgb))), fontColor.a);
+	color = (fontColor * inner_opacity) + (outer_color * (outer_opacity - inner_opacity));
 }`
 
 export const vertCircleShader = `#version 300 es

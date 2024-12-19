@@ -72,6 +72,7 @@ export type NVConfigOptions = {
   backColor: number[]
   crosshairColor: number[]
   fontColor: Float32List
+  fontOutline: boolean
   selectionBoxColor: number[]
   clipPlaneColor: number[]
   clipThick: number
@@ -178,6 +179,7 @@ export const DEFAULT_OPTIONS: NVConfigOptions = {
   backColor: [0, 0, 0, 1],
   crosshairColor: [1, 0, 0, 1],
   fontColor: [0.5, 0.5, 0.5, 1],
+  fontOutline: false,
   selectionBoxColor: [1, 1, 1, 0.5],
   clipPlaneColor: [0.7, 0, 0.7, 0.5],
   clipThick: 2,
