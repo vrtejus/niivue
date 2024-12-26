@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>NIfTI Viewer</title>
+    <style>
+      body, html {
+        margin: 0;
+        padding: 0;
+        width: 95%;
+        height: 95%;
+        overflow: hidden;
+      }
+      #container {
+        width: 95%;
+        height: 95%;
+      }
+      #gl1 {
+        width: 95%;
+        height: 95%;
+      }
+    </style>
+  </head>
+  <body>
+    <main id="container">
+      <canvas id="gl1"></canvas>
+    </main>
+  </body>
+</html>
+<script type="module" async>
+  import { Niivue } from "./niivue/index.ts"
+  
+  var nv1 = new Niivue({
+    show3Dcrosshair: true,
+    backColor: [0.9, 0.9, 1, 1],
+    loglevel: 'debug',
+  })
+  nv1.setSliceType(nv1.sliceTypeRender)
+  nv1.attachTo("gl1")
+  
+  // Replace this path with the path to your .nii.gz file
+  await nv1.loadVolumes([{
+    url: "./train_1046_a_1.nii.gz"
+  }])
+</script>
